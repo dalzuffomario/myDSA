@@ -43,7 +43,7 @@
 <div class="container">
     <div style="text-align: center; margin-bottom: 20px;">
         <img src="banner_cri.png" alt="Banner CRI" style="max-width: 100%; height: auto;" onerror="this.style.display='none'; document.getElementById('altBannerTesto').style.display='block';">
-        <h4 id="altBannerTesto" style="display:none; color: var(--primary-color); border: 2px dashed red; padding: 10px;">[ERRORE IMMAGINE: Verifica su GitHub che il file si chiami esattamente "banner_cri.png"]</h4>
+        <h4 id="altBannerTesto" style="display:none; color: var(--primary-color); border: 2px dashed red; padding: 10px;">[ERRORE IMMAGINE: Verifica su GitHub che il file caricato si chiami esattamente "banner_cri.png"]</h4>
         <h2 style="color: var(--primary-color); margin-top: 15px; margin-bottom: 5px;">GENERAZIONE DSA</h2>
     </div>
 
@@ -87,7 +87,7 @@
     <!-- DATI SERVIZIO -->
     <div class="section-title">Dettagli Servizio</div>
     <div class="form-group">
-        <label>Tipo di Servizio (Art. 1656)</label>
+        <label>Tipo di Servizio</label>
         <select id="tipoServizio" onchange="checkServizio()" required>
             <option value="">-- Seleziona --</option>
             <option value="concorso">Concorso Sanitario D.O.B. a:</option>
@@ -162,7 +162,6 @@
         </div>
         <p style="color:#666;">Le coordinate qui sotto vengono mantenute in memoria finché non svuoti la cache. Per renderle definitive su tutti i PC, usa "Copia per GitHub".</p>
         
-        <!-- NUOVO CONTROLLO SCALA FIRMA -->
         <div style="background: #e3f2fd; padding: 15px; margin-bottom: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
             <strong style="color: #1976d2;">🔍 Grandezza Immagine Firma (%):</strong>
             <div>
@@ -186,7 +185,7 @@
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
     // --- INIZIO BLOCCO DA COPIARE E SOSTITUIRE SU GITHUB ---
-    const SCALE_FIRMA_DEF = 15;
+    const SCALE_FIRMA_DEF = 24;
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 120, y: 725 },
         natoA: { name: "Nato a", x: 350, y: 725 },
@@ -215,9 +214,9 @@
         cx_altro: { name: "[X] Altro", x: 321, y: 335 },
         tx_altro: { name: "[Testo] Altro", x: 350, y: 330 },
         cx_consenso: { name: "[X] Consenso Ente", x: 52, y: 255 },
-        cx_libero: { name: "[X] Libero Obblighi", x: 320, y: 255 },
-        cx_prof: { name: "[X] Libero Prof.", x: 320, y: 238 },
-        cx_pens: { name: "[X] Pensionato", x: 320, y: 219 },
+        cx_libero: { name: "[X] Libero Obblighi", x: 321, y: 254 },
+        cx_prof: { name: "[X] Libero Prof.", x: 321, y: 238 },
+        cx_pens: { name: "[X] Pensionato", x: 321, y: 219 },
         cx_stud: { name: "[X] Studente", x: 321, y: 201 },
         cx_disocc: { name: "[X] Disoccupato", x: 321, y: 183 }
     };
@@ -303,7 +302,7 @@
     }
 
     function aggiornaDagliInput() {
-        currentScaleFirma = parseInt(document.getElementById('calibScaleFirma').value) || 15;
+        currentScaleFirma = parseInt(document.getElementById('calibScaleFirma').value) || SCALE_FIRMA_DEF;
         Object.keys(currentCoords).forEach(key => {
             currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
             currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
@@ -545,8 +544,6 @@
 
             if (firmaArrayBuffer) {
                 let pdfImage = isJpeg ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
-                
-                // CALCOLO SCALA DINAMICA DA PANNELLO
                 const scaleFactor = currentScaleFirma / 100;
                 const dims = pdfImage.scale(scaleFactor); 
                 firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
