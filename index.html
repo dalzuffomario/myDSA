@@ -41,7 +41,6 @@
 <div class="container">
     <h1>GENERAZIONE DSA</h1>
 
-    <!-- FORM NORMALE -->
     <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
     <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
     <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
@@ -132,6 +131,8 @@
 
     <br>
     <button class="btn" onclick="generaPDF(false)">Crea DSA (Invio Mail)</button>
+    
+    <!-- QUANDO HAI FATTO, PUOI CANCELLARE LA RIGA QUI SOTTO PER FAR SPARIRE IL TASTO CALIBRAZIONE -->
     <button class="btn btn-settings" onclick="apriCalibrazione()">⚙️ Regola Posizioni di Stampa (Calibrazione)</button>
 </div>
 
@@ -141,11 +142,12 @@
         <div class="calib-header">
             <h2 style="margin:0;">Calibrazione Coordinate (X, Y)</h2>
             <div>
-                <button style="padding:10px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="salvaCalibrazione()">Salva Coordinate</button>
+                <!-- NUOVO TASTO PER ESPORTARE IL CODICE -->
+                <button style="padding:10px; background:#ff9800; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:5px;" onclick="esportaCoordinateCodice()">📄 Copia per GitHub</button>
                 <button style="padding:10px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="chiudiCalibrazione()">Chiudi</button>
             </div>
         </div>
-        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato.</p>
+        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato. Quando hai trovato i numeri giusti, clicca "Copia per GitHub".</p>
         <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️ Genera PDF di Prova con Griglia</button>
         
         <div class="grid-2" id="calibContainer">
@@ -161,7 +163,7 @@
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
-    // SETUP COORDINATE PREDEFINITE (Con Civico e Cellulare)
+    // SETUP COORDINATE DI FABBRICA - SOSTITUISCI QUESTO BLOCCO CON QUELLO CHE COPIERAI
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 140, y: 725 },
         natoA: { name: "Nato a", x: 120, y: 705 },
@@ -178,8 +180,6 @@
         luogoFirma: { name: "Lì (Luogo)", x: 80, y: 105 },
         dataFirma: { name: "Data Firma", x: 160, y: 105 },
         imgFirma: { name: "Immagine Firma", x: 400, y: 50 },
-        
-        // CROCETTE SERVIZIO
         cx_concorso: { name: "[X] Concorso San.", x: 65, y: 445 },
         tx_concorso: { name: "[Testo] Concorso San.", x: 200, y: 445 },
         cx_poligoni: { name: "[X] Poligoni", x: 65, y: 420 },
@@ -190,8 +190,6 @@
         cx_corsi: { name: "[X] Corsi", x: 325, y: 420 },
         cx_altro: { name: "[X] Altro", x: 325, y: 395 },
         tx_altro: { name: "[Testo] Altro", x: 380, y: 395 },
-        
-        // CROCETTE LAVORO
         cx_consenso: { name: "[X] Consenso Ente", x: 65, y: 280 },
         tx_consenso: { name: "[Testo] Ente/Datore", x: 100, y: 240 },
         cx_libero: { name: "[X] Libero Obblighi", x: 325, y: 280 },
@@ -202,7 +200,6 @@
     };
 
     let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
-    // Se non ci sono coordinate salvate O mancano le nuove voci (civico/cellulare), resetta tutto
     if (!currentCoords || !currentCoords.civico) {
         currentCoords = JSON.parse(JSON.stringify(coordDef)); 
     }
@@ -286,17 +283,50 @@
         container.innerHTML = col1 + col2;
     }
 
-    function salvaCalibrazione() {
+    function aggiornaDagliInput() {
         Object.keys(currentCoords).forEach(key => {
             currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
             currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
         });
+    }
+
+    // NUOVA FUNZIONE: ESPORTA IL CODICE PER GITHUB
+    function esportaCoordinateCodice() {
+        aggiornaDagliInput();
+        let codeStr = "    const coordDef = {\n";
+        const keys = Object.keys(currentCoords);
+        keys.forEach((key, index) => {
+            const item = currentCoords[key];
+            codeStr += `        ${key}: { name: "${item.name}", x: ${item.x}, y: ${item.y} }`;
+            if (index < keys.length - 1) codeStr += ",\n";
+            else codeStr += "\n";
+        });
+        codeStr += "    };";
+
+        Swal.fire({
+            title: 'Codice Generato!',
+            html: '<p style="font-size:14px; text-align:left;">Copia questo blocco e incollalo su GitHub al posto del vecchio <b>const coordDef = { ... }</b></p><textarea id="copyCodeArea" style="width:100%; height:250px; font-family:monospace; font-size:12px; padding:10px; background:#f4f4f4; border:1px solid #ccc;" readonly>' + codeStr + '</textarea>',
+            showCancelButton: true,
+            confirmButtonText: 'Copia negli Appunti',
+            cancelButtonText: 'Chiudi'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const copyText = document.getElementById("copyCodeArea");
+                copyText.select();
+                document.execCommand("copy");
+                Swal.fire('Copiato!', 'Ora vai su GitHub, modifica il file index.html e incollalo!', 'success');
+            }
+        });
+    }
+
+    function salvaCalibrazione() {
+        aggiornaDagliInput();
         localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
-        Swal.fire('Salvato!', 'Le coordinate sono state salvate.', 'success');
+        Swal.fire('Salvato in memoria', 'Ricorda: per renderle permanenti usa il tasto "Copia per GitHub"!', 'success');
     }
 
     function resetCalibrazione() {
-        if(confirm("Vuoi riportare tutto alle impostazioni iniziali?")) {
+        if(confirm("Vuoi riportare tutto alle impostazioni di fabbrica scritte nel codice?")) {
             currentCoords = JSON.parse(JSON.stringify(coordDef));
             localStorage.removeItem('pdfCoords');
             generaCampiCalibrazione();
@@ -313,12 +343,7 @@
             salvaDatiLocali();
         }
 
-        if (isTest) {
-            Object.keys(currentCoords).forEach(key => {
-                currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
-                currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
-            });
-        }
+        if (isTest) aggiornaDagliInput();
 
         Swal.fire({ title: 'Generazione in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
