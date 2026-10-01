@@ -25,7 +25,6 @@
         .radio-list label { font-weight: normal; display: block; margin-bottom: 5px;}
         input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
         
-        /* Stili Modal Calibrazione */
         #modalCalibrazione { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; overflow-y: auto; padding: 20px; }
         .modal-content { background: #fff; max-width: 900px; margin: auto; padding: 25px; border-radius: 10px; }
         .coord-row { display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
@@ -33,14 +32,17 @@
         .coord-input { width: 80px !important; margin-left: 10px; }
         .calib-header { display: flex; justify-content: space-between; position: sticky; top: -25px; background: #fff; padding: 15px 0; border-bottom: 2px solid #ccc; z-index: 10; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .firma-preview-box { background: #f9f9f9; border: 1px dashed #aaa; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- NUOVA INTESTAZIONE GRAFICA -->
     <div style="text-align: center; margin-bottom: 20px;">
-        <img src="banner_cri.png" alt="Banner CRI" style="max-width: 100%; height: auto;">
+        <!-- Se il banner fallisce, mostra l'avviso per il nome file errato -->
+        <img src="banner_cri.png" alt="Banner CRI" style="max-width: 100%; height: auto;" onerror="this.style.display='none'; document.getElementById('altBannerTesto').style.display='block';">
+        <h4 id="altBannerTesto" style="display:none; color: var(--primary-color); border: 2px dashed red; padding: 10px;">[ERRORE: Assicurati che su GitHub il file si chiami esattamente "banner_cri.png" tutto minuscolo]</h4>
+        
         <h2 style="color: var(--primary-color); margin-top: 15px; margin-bottom: 5px;">GENERAZIONE DSA</h2>
     </div>
 
@@ -81,6 +83,7 @@
         <label for="editData" style="margin:0; font-weight: bold; color: var(--primary-color);">Modifica dati anagrafici salvati</label>
     </div>
 
+    <!-- DATI SERVIZIO -->
     <div class="section-title">Dettagli Servizio</div>
     <div class="form-group">
         <label>Tipo di Servizio (Art. 1656)</label>
@@ -107,6 +110,7 @@
         </div>
     </div>
 
+    <!-- POSIZIONE LAVORATIVA -->
     <div class="section-title">Posizione Lavorativa</div>
     <div class="form-group radio-list">
         <label><input type="radio" name="lavoro" value="consenso" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
@@ -117,6 +121,7 @@
         <label><input type="radio" name="lavoro" value="disoccupato"> DISOCCUPATO</label>
     </div>
 
+    <!-- FIRMA E DATA -->
     <div class="section-title">Firma e Data Odierna</div>
     <div class="checkbox-oggi">
         <input type="checkbox" id="dataOggiCheck" onchange="toggleDataOggi()">
@@ -128,13 +133,22 @@
     </div>
 
     <div class="form-group">
-        <label>Carica Firma (Scatta foto o carica immagine PNG/JPG)</label>
-        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" required>
+        <label>La tua Firma</label>
+        <div id="firmaPreviewContainer" class="firma-preview-box hidden">
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: green; font-weight: bold;">✅ Firma Salvata in Memoria</p>
+            <img id="firmaPreview" style="max-height: 80px; max-width: 100%;">
+            <br>
+            <button type="button" onclick="rimuoviFirma()" style="margin-top: 10px; background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Rimuovi Firma</button>
+        </div>
+        <label id="firmaLabelTxt">Carica Nuova Firma (Scatta foto o carica PNG/JPG)</label>
+        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" onchange="salvaFirmaInMemoria()" required>
     </div>
 
     <br>
     <button class="btn" onclick="generaPDF(false)">Crea DSA (Invio Mail)</button>
-    <button class="btn btn-settings" onclick="apriCalibrazione()">⚙️ Regola Posizioni di Stampa (Calibrazione)</button>
+    
+    <!-- TASTO PROTETTO DA PASSWORD -->
+    <button class="btn btn-settings" onclick="richiediPasswordCalibrazione()">⚙️ Regola Posizioni di Stampa (Amministratore)</button>
 </div>
 
 <!-- MODAL CALIBRAZIONE -->
@@ -147,12 +161,14 @@
                 <button style="padding:10px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="chiudiCalibrazione()">Chiudi</button>
             </div>
         </div>
-        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato.</p>
+        <p style="color:#666;">Le coordinate qui sotto vengono mantenute in memoria finché non svuoti la cache. Per renderle definitive su tutti i PC, usa "Copia per GitHub".</p>
         <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️ Genera PDF di Prova con Griglia</button>
         
         <div class="grid-2" id="calibContainer"></div>
+        
         <div style="margin-top:20px; text-align:center;">
-            <button style="padding:10px; background:#999; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="resetCalibrazione()">🔄 Ripristina Valori Iniziali</button>
+            <button style="padding:10px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer; margin-right: 10px;" onclick="salvaCalibrazione()">Salva nel Browser</button>
+            <button style="padding:10px; background:#999; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="resetCalibrazione()">🔄 Ripristina Dati di Fabbrica</button>
         </div>
     </div>
 </div>
@@ -161,45 +177,47 @@
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
-    // SETUP COORDINATE AGGIORNATO CON CAMPI TESTO CORSI E RIMOZIONE ENTE/DATORE
+    // --- LE TUE COORDINATE PREDEFINITE (COMPRESO tx_corsi E SENZA ENTE/DATORE) ---
     const coordDef = {
-        sottoscritto: { name: "Nome e Cognome", x: 140, y: 725 },
-        natoA: { name: "Nato a", x: 120, y: 705 },
-        dataNascita: { name: "Data Nascita", x: 360, y: 705 },
-        residenteA: { name: "Residente a", x: 140, y: 685 },
-        via: { name: "Via e Nome Via", x: 330, y: 685 },
-        civico: { name: "N° Civico", x: 480, y: 685 },
-        cellulare: { name: "Cellulare", x: 530, y: 685 },
-        naapro: { name: "N.A.A.Pro", x: 440, y: 665 },
-        quota: { name: "Quota (Anno)", x: 390, y: 625 },
-        comitato: { name: "Comitato", x: 70, y: 605 },
-        dataDal: { name: "Data Dal", x: 120, y: 320 },
-        dataAl: { name: "Data Al", x: 270, y: 320 },
-        luogoFirma: { name: "Lì (Luogo)", x: 80, y: 105 },
-        dataFirma: { name: "Data Firma", x: 160, y: 105 },
-        imgFirma: { name: "Immagine Firma", x: 400, y: 50 },
-        cx_concorso: { name: "[X] Concorso San.", x: 65, y: 445 },
-        tx_concorso: { name: "[Testo] Concorso San.", x: 200, y: 445 },
-        cx_poligoni: { name: "[X] Poligoni", x: 65, y: 420 },
-        tx_poligoni: { name: "[Testo] Poligoni", x: 200, y: 420 },
-        cx_logistico: { name: "[X] Logistico", x: 65, y: 395 },
-        tx_logistico: { name: "[Testo] Logistico", x: 200, y: 395 },
-        cx_nomina: { name: "[X] 1a Nomina", x: 325, y: 445 },
-        cx_corsi: { name: "[X] Corsi", x: 325, y: 420 },
-        tx_corsi: { name: "[Testo] Corsi", x: 350, y: 360 }, 
-        cx_altro: { name: "[X] Altro", x: 325, y: 395 },
-        tx_altro: { name: "[Testo] Altro", x: 380, y: 395 },
-        cx_consenso: { name: "[X] Consenso Ente", x: 65, y: 280 },
-        cx_libero: { name: "[X] Libero Obblighi", x: 325, y: 280 },
-        cx_prof: { name: "[X] Libero Prof.", x: 325, y: 258 },
-        cx_pens: { name: "[X] Pensionato", x: 325, y: 237 },
-        cx_stud: { name: "[X] Studente", x: 325, y: 215 },
-        cx_disocc: { name: "[X] Disoccupato", x: 325, y: 195 }
+        sottoscritto: { name: "Nome e Cognome", x: 120, y: 725 },
+        natoA: { name: "Nato a", x: 350, y: 725 },
+        dataNascita: { name: "Data Nascita", x: 500, y: 725 },
+        residenteA: { name: "Residente a", x: 120, y: 707 },
+        via: { name: "Via e Nome Via", x: 270, y: 707 },
+        civico: { name: "N° Civico", x: 420, y: 707 },
+        cellulare: { name: "Cellulare", x: 480, y: 707 },
+        naapro: { name: "N.A.A.Pro", x: 350, y: 693 },
+        quota: { name: "Quota (Anno)", x: 323, y: 630 },
+        comitato: { name: "Comitato", x: 70, y: 617 },
+        dataDal: { name: "Data Dal", x: 225, y: 315 },
+        dataAl: { name: "Data Al", x: 330, y: 315 },
+        luogoFirma: { name: "Lì (Luogo)", x: 70, y: 77 },
+        dataFirma: { name: "Data Firma", x: 160, y: 77 },
+        imgFirma: { name: "Immagine Firma", x: 400, y: 10 },
+        cx_concorso: { name: "[X] Concorso San.", x: 52, y: 398 },
+        tx_concorso: { name: "[Testo] Concorso San.", x: 80, y: 391 },
+        cx_poligoni: { name: "[X] Poligoni", x: 52, y: 366 },
+        tx_poligoni: { name: "[Testo] Poligoni", x: 80, y: 361 },
+        cx_logistico: { name: "[X] Logistico", x: 52, y: 335 },
+        tx_logistico: { name: "[Testo] Logistico", x: 80, y: 328 },
+        cx_nomina: { name: "[X] 1a Nomina", x: 320, y: 398 },
+        cx_corsi: { name: "[X] Corsi", x: 320, y: 367 },
+        tx_corsi: { name: "[Testo] Corsi", x: 350, y: 360 },
+        cx_altro: { name: "[X] Altro", x: 321, y: 335 },
+        tx_altro: { name: "[Testo] Altro", x: 350, y: 330 },
+        cx_consenso: { name: "[X] Consenso Ente", x: 52, y: 255 },
+        cx_libero: { name: "[X] Libero Obblighi", x: 320, y: 255 },
+        cx_prof: { name: "[X] Libero Prof.", x: 320, y: 238 },
+        cx_pens: { name: "[X] Pensionato", x: 320, y: 219 },
+        cx_stud: { name: "[X] Studente", x: 321, y: 201 },
+        cx_disocc: { name: "[X] Disoccupato", x: 321, y: 183 }
     };
 
     let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
-    if (!currentCoords || !currentCoords.tx_corsi || currentCoords.tx_consenso) {
+    // Rigenera se non ci sono coordinate salvate o se manca tx_corsi per garantire l'aggiornamento
+    if (!currentCoords || !currentCoords.tx_corsi) { 
         currentCoords = JSON.parse(JSON.stringify(coordDef)); 
+        localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
     }
 
     window.onload = () => {
@@ -208,44 +226,38 @@
             const val = localStorage.getItem(id);
             if (val) { document.getElementById(id).value = val; hasData = true; }
         });
+        mostraFirmaSalvata();
         if (hasData) { lockFields(true); document.getElementById('editData').checked = false; }
         generaCampiCalibrazione();
     };
 
-    function lockFields(lock) {
-        campiLocali.forEach(id => {
-            const el = document.getElementById(id);
-            if (lock) {
-                if(el.tagName === 'SELECT') el.setAttribute('disabled', true);
-                else el.setAttribute('readonly', true);
-            } else {
-                if(el.tagName === 'SELECT') el.removeAttribute('disabled');
-                else el.removeAttribute('readonly');
+    // --- LOGICA PASSWORD E MODAL CALIBRAZIONE ---
+    function richiediPasswordCalibrazione() {
+        Swal.fire({
+            title: 'Accesso Riservato',
+            html: `
+                <input type="text" id="loginUser" class="swal2-input" placeholder="Utente">
+                <input type="password" id="loginPass" class="swal2-input" placeholder="Password">
+            `,
+            confirmButtonText: 'Accedi',
+            focusConfirm: false,
+            preConfirm: () => {
+                const user = Swal.getPopup().querySelector('#loginUser').value;
+                const pass = Swal.getPopup().querySelector('#loginPass').value;
+                if (!user || !pass) Swal.showValidationMessage('Inserisci utente e password');
+                return { user: user, pass: pass };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value.user === 'admin' && result.value.pass === 'CDMPadova1!') {
+                    apriCalibrazione();
+                } else {
+                    Swal.fire('Accesso Negato', 'Credenziali errate.', 'error');
+                }
             }
         });
     }
 
-    function toggleEdit() { lockFields(!document.getElementById('editData').checked); }
-    function salvaDatiLocali() {
-        campiLocali.forEach(id => localStorage.setItem(id, document.getElementById(id).value));
-        lockFields(true); document.getElementById('editData').checked = false;
-    }
-
-    function checkServizio() {
-        const val = document.getElementById('tipoServizio').value;
-        const div = document.getElementById('dettaglioServizioDiv');
-        if (['concorso', 'poligoni', 'logistico', 'corsi', 'altro'].includes(val)) div.classList.remove('hidden');
-        else { div.classList.add('hidden'); document.getElementById('dettaglioServizio').value = ""; }
-    }
-
-    function toggleDataOggi() {
-        const isChecked = document.getElementById('dataOggiCheck').checked;
-        const dInput = document.getElementById('dataFirma');
-        if (isChecked) { dInput.value = new Date().toISOString().split('T')[0]; dInput.setAttribute('readonly', true); } 
-        else { dInput.value = ""; dInput.removeAttribute('readonly'); }
-    }
-
-    // --- FUNZIONI MODAL CALIBRAZIONE ---
     function apriCalibrazione() { document.getElementById('modalCalibrazione').style.display = 'block'; }
     function chiudiCalibrazione() { document.getElementById('modalCalibrazione').style.display = 'none'; }
     
@@ -280,6 +292,21 @@
         });
     }
 
+    function salvaCalibrazione() {
+        aggiornaDagliInput();
+        localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
+        Swal.fire('Salvato', 'Le coordinate sono state salvate nel browser per le prossime sessioni.', 'success');
+    }
+
+    function resetCalibrazione() {
+        if(confirm("Vuoi riportare tutto alle impostazioni di fabbrica scritte nel codice base?")) {
+            currentCoords = JSON.parse(JSON.stringify(coordDef));
+            localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
+            generaCampiCalibrazione();
+            Swal.fire('Resettato', 'Dati riportati alle coordinate base.', 'success');
+        }
+    }
+
     function esportaCoordinateCodice() {
         aggiornaDagliInput();
         let codeStr = "    const coordDef = {\n";
@@ -308,25 +335,86 @@
         });
     }
 
-    function salvaCalibrazione() {
-        aggiornaDagliInput();
-        localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
-        Swal.fire('Salvato in memoria', 'Ricorda: per renderle permanenti usa il tasto "Copia per GitHub"!', 'success');
+    // --- LOGICA FORM ---
+    function lockFields(lock) {
+        campiLocali.forEach(id => {
+            const el = document.getElementById(id);
+            if (lock) {
+                if(el.tagName === 'SELECT') el.setAttribute('disabled', true);
+                else el.setAttribute('readonly', true);
+            } else {
+                if(el.tagName === 'SELECT') el.removeAttribute('disabled');
+                else el.removeAttribute('readonly');
+            }
+        });
     }
 
-    function resetCalibrazione() {
-        if(confirm("Vuoi riportare tutto alle impostazioni di fabbrica scritte nel codice?")) {
-            currentCoords = JSON.parse(JSON.stringify(coordDef));
-            localStorage.removeItem('pdfCoords');
-            generaCampiCalibrazione();
+    function toggleEdit() { 
+        const isEditing = document.getElementById('editData').checked;
+        if (isEditing) lockFields(false); 
+        else salvaDatiLocali(); 
+    }
+
+    function salvaDatiLocali() {
+        campiLocali.forEach(id => localStorage.setItem(id, document.getElementById(id).value));
+        lockFields(true); document.getElementById('editData').checked = false;
+    }
+
+    function salvaFirmaInMemoria() {
+        const file = document.getElementById('firmaImg').files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                localStorage.setItem('firmaSalvataBase64', e.target.result);
+                mostraFirmaSalvata();
+            }
+            reader.readAsDataURL(file);
         }
+    }
+
+    function mostraFirmaSalvata() {
+        const salvata = localStorage.getItem('firmaSalvataBase64');
+        if (salvata) {
+            document.getElementById('firmaPreviewContainer').classList.remove('hidden');
+            document.getElementById('firmaPreview').src = salvata;
+            document.getElementById('firmaImg').removeAttribute('required');
+            document.getElementById('firmaLabelTxt').innerText = "Sostituisci la firma salvata (Opzionale):";
+        } else {
+            document.getElementById('firmaPreviewContainer').classList.add('hidden');
+            document.getElementById('firmaPreview').src = "";
+            document.getElementById('firmaImg').setAttribute('required', 'true');
+            document.getElementById('firmaLabelTxt').innerText = "Carica Nuova Firma (Scatta foto o carica PNG/JPG)";
+        }
+    }
+
+    function rimuoviFirma() {
+        localStorage.removeItem('firmaSalvataBase64');
+        document.getElementById('firmaImg').value = ""; 
+        mostraFirmaSalvata();
+    }
+
+    function checkServizio() {
+        const val = document.getElementById('tipoServizio').value;
+        const div = document.getElementById('dettaglioServizioDiv');
+        if (['concorso', 'poligoni', 'logistico', 'corsi', 'altro'].includes(val)) div.classList.remove('hidden');
+        else { div.classList.add('hidden'); document.getElementById('dettaglioServizio').value = ""; }
+    }
+
+    function toggleDataOggi() {
+        const isChecked = document.getElementById('dataOggiCheck').checked;
+        const dInput = document.getElementById('dataFirma');
+        if (isChecked) { dInput.value = new Date().toISOString().split('T')[0]; dInput.setAttribute('readonly', true); } 
+        else { dInput.value = ""; dInput.removeAttribute('readonly'); }
     }
 
     // --- GENERAZIONE PDF ---
     async function generaPDF(isTest = false) {
+        const fileInput = document.getElementById('firmaImg').files[0];
+        const salvataBase64 = localStorage.getItem('firmaSalvataBase64');
+
         if (!isTest) {
-            if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !document.getElementById('firmaImg').files[0]) {
-                Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e carica la firma.', 'error');
+            if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || (!fileInput && !salvataBase64)) {
+                Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e assicurati di avere una firma.', 'error');
                 return;
             }
             salvaDatiLocali();
@@ -417,15 +505,27 @@
             if (isTest || lavVal === 'studente') { drawCross('cx_stud'); }
             if (isTest || lavVal === 'disoccupato') { drawCross('cx_disocc'); }
 
-            const firmaFile = document.getElementById('firmaImg').files[0];
-            if (firmaFile) {
-                const firmaArrayBuffer = await firmaFile.arrayBuffer();
-                let pdfImage = firmaFile.type === 'image/jpeg' ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
-                // Scala della firma ingrandita al 30%
+            let firmaArrayBuffer = null;
+            let isJpeg = false;
+
+            if (fileInput) {
+                firmaArrayBuffer = await fileInput.arrayBuffer();
+                isJpeg = fileInput.type === 'image/jpeg';
+            } else if (salvataBase64) {
+                isJpeg = salvataBase64.startsWith('data:image/jpeg');
+                const base64Data = salvataBase64.split(',')[1];
+                const binaryStr = window.atob(base64Data);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+                firmaArrayBuffer = bytes.buffer;
+            }
+
+            if (firmaArrayBuffer) {
+                let pdfImage = isJpeg ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
                 const dims = pdfImage.scale(0.3); 
                 firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
             } else if (isTest) {
-                firstPage.drawText('[QUI ANDRA LA FIRMA INGRANDITA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
+                firstPage.drawText('[FIRMA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
             }
 
             const pdfBytes = await pdfDoc.save();
