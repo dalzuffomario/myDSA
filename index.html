@@ -2,383 +2,47 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GENERAZIONE DSA</title>
+    <title>Generatore Griglia PDF</title>
     <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        :root { --primary-color: #d32f2f; --secondary-color: #1976d2; --bg-color: #f4f6f8; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input[type="text"], input[type="email"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .address-group { display: flex; gap: 10px; }
-        .address-group select { width: 30%; }
-        .address-group input { width: 70%; }
-        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 20px; background: #ffebee; padding: 10px; border-radius: 5px; border-left: 4px solid var(--primary-color);}
-        .checkbox-oggi { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #e3f2fd; padding: 10px; border-radius: 5px; }
-        .btn { background-color: var(--secondary-color); color: white; padding: 15px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; transition: 0.3s; }
-        .btn:hover { background-color: #115293; }
-        .section-title { background: #eee; padding: 10px; border-left: 5px solid var(--primary-color); margin-top: 30px; margin-bottom: 15px; font-weight: bold; }
-        .hidden { display: none; }
-        .radio-list label { font-weight: normal; display: block; margin-bottom: 5px;}
-        input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
-    </style>
 </head>
-<body>
+<body style="text-align: center; font-family: sans-serif; padding: 50px; background-color: #f4f6f8;">
+    <h2 style="color: #d32f2f;">Strumento di Calibrazione PDF</h2>
+    <p>Clicca il pulsante qui sotto per scaricare il PDF originale con la griglia millimetrata sovrapposta.</p>
+    <button onclick="generaGriglia()" style="padding: 15px 30px; font-size: 18px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer;">Scarica PDF con Griglia</button>
 
-<div class="container">
-    <h1>GENERAZIONE DSA</h1>
+    <script>
+        async function generaGriglia() {
+            try {
+                // Recupera il PDF vergine caricato su GitHub
+                const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
+                const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
 
-    <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
-    <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
-    <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
-    <div class="form-group"><label>Nato a</label><input type="text" id="natoA" required></div>
-    <div class="form-group"><label>Il (Data di nascita)</label><input type="date" id="dataNascita" required></div>
-    <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required></div>
-    
-    <div class="form-group">
-        <label>Indirizzo</label>
-        <div class="address-group">
-            <select id="tipoVia">
-                <option value="Via">Via</option>
-                <option value="Piazza">Piazza</option>
-                <option value="Viale">Viale</option>
-                <option value="Vicolo">Vicolo</option>
-                <option value="Corso">Corso</option>
-                <option value="Largo">Largo</option>
-                <option value="Strada">Strada</option>
-            </select>
-            <input type="text" id="nomeVia" required>
-        </div>
-    </div>
-
-    <div class="form-group"><label>N.A.A.Pro di</label><input type="text" id="naapro" required></div>
-    <div class="form-group"><label>Quota associativa per l'anno</label><input type="text" id="quota" required></div>
-    <div class="form-group"><label>Comitato Locale di Croce Rossa</label><input type="text" id="comitato" required></div>
-    <div class="form-group"><label>Indirizzo Email Personale</label><input type="email" id="email" required></div>
-    <div class="form-group"><label>Lì</label><input type="text" id="luogoFirma" required></div>
-
-    <div class="checkbox-group">
-        <input type="checkbox" id="editData" onchange="toggleEdit()">
-        <label for="editData" style="margin:0; font-weight: bold; color: var(--primary-color);">Modifica dati anagrafici salvati</label>
-    </div>
-
-    <div class="section-title">Dettagli Servizio</div>
-    <div class="form-group">
-        <label>Tipo di Servizio (Art. 1656)</label>
-        <select id="tipoServizio" onchange="checkServizio()" required>
-            <option value="">-- Seleziona --</option>
-            <option value="concorso">Concorso Sanitario D.O.B. a:</option>
-            <option value="poligoni">Assistenza Sa. Poligoni/Reggimenti a:</option>
-            <option value="logistico">Supporto Amm.vo/Logistico a:</option>
-            <option value="nomina">1ª Nomina Personale Direttivo presso CdM</option>
-            <option value="corsi">Corsi Formazione/Addestramento</option>
-            <option value="altro">Altro:</option>
-        </select>
-    </div>
-    <div class="form-group hidden" id="dettaglioServizioDiv">
-        <label>Specificare</label>
-        <input type="text" id="dettaglioServizio">
-    </div>
-
-    <div class="form-group">
-        <label>Periodo Richiamo</label>
-        <div style="display: flex; gap: 10px;">
-            <div style="width: 50%;"><label>Dal</label><input type="date" id="dataDal" required></div>
-            <div style="width: 50%;"><label>Al</label><input type="date" id="dataAl" required></div>
-        </div>
-    </div>
-
-    <div class="section-title">Posizione Lavorativa</div>
-    <div class="form-group radio-list">
-        <label><input type="radio" name="lavoro" value="consenso" onchange="checkLavoro()" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
-        <input type="text" id="dettaglioLavoro" class="hidden" placeholder="Specificare Ente/Datore">
-        <label><input type="radio" name="lavoro" value="libero_obblighi" onchange="checkLavoro()"> LIBERO DA OBBLIGHI LAVORATIVI</label>
-        <label><input type="radio" name="lavoro" value="libero_prof" onchange="checkLavoro()"> LIBERO PROFESSIONISTA</label>
-        <label><input type="radio" name="lavoro" value="pensionato" onchange="checkLavoro()"> PENSIONATO</label>
-        <label><input type="radio" name="lavoro" value="studente" onchange="checkLavoro()"> STUDENTE</label>
-        <label><input type="radio" name="lavoro" value="disoccupato" onchange="checkLavoro()"> DISOCCUPATO</label>
-    </div>
-
-    <div class="section-title">Firma e Data Odierna</div>
-    <div class="checkbox-oggi">
-        <input type="checkbox" id="dataOggiCheck" onchange="toggleDataOggi()">
-        <label for="dataOggiCheck" style="margin:0;">Inserisci data di oggi automaticamente</label>
-    </div>
-    <div class="form-group">
-        <label>Data Firma</label>
-        <input type="date" id="dataFirma">
-    </div>
-
-    <div class="form-group">
-        <label>Carica Firma (Scatta foto o carica immagine PNG/JPG)</label>
-        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" required>
-    </div>
-
-    <br>
-    <button class="btn" onclick="generaPDF()">Crea DSA</button>
-</div>
-
-<script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
-
-    const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
-
-    window.onload = () => {
-        let hasData = false;
-        campiLocali.forEach(id => {
-            const val = localStorage.getItem(id);
-            if (val) {
-                document.getElementById(id).value = val;
-                hasData = true;
-            }
-        });
-        if (hasData) {
-            lockFields(true);
-            document.getElementById('editData').checked = false;
-        }
-    };
-
-    function lockFields(lock) {
-        campiLocali.forEach(id => {
-            const el = document.getElementById(id);
-            if (lock) {
-                if(el.tagName === 'SELECT') el.setAttribute('disabled', true);
-                else el.setAttribute('readonly', true);
-            } else {
-                if(el.tagName === 'SELECT') el.removeAttribute('disabled');
-                else el.removeAttribute('readonly');
-            }
-        });
-    }
-
-    function toggleEdit() {
-        const canEdit = document.getElementById('editData').checked;
-        lockFields(!canEdit); 
-    }
-
-    function salvaDatiLocali() {
-        campiLocali.forEach(id => {
-            localStorage.setItem(id, document.getElementById(id).value);
-        });
-        lockFields(true); 
-        document.getElementById('editData').checked = false;
-    }
-
-    function checkServizio() {
-        const val = document.getElementById('tipoServizio').value;
-        const div = document.getElementById('dettaglioServizioDiv');
-        if (['concorso', 'poligoni', 'logistico', 'altro'].includes(val)) {
-            div.classList.remove('hidden');
-        } else {
-            div.classList.add('hidden');
-            document.getElementById('dettaglioServizio').value = "";
-        }
-    }
-
-    function checkLavoro() {
-        const radioChecked = document.querySelector('input[name="lavoro"]:checked');
-        if(!radioChecked) return;
-        const val = radioChecked.value;
-        const inputDettaglio = document.getElementById('dettaglioLavoro');
-        if (val === 'consenso') inputDettaglio.classList.remove('hidden');
-        else {
-            inputDettaglio.classList.add('hidden');
-            inputDettaglio.value = "";
-        }
-    }
-
-    function toggleDataOggi() {
-        const isChecked = document.getElementById('dataOggiCheck').checked;
-        const dateInput = document.getElementById('dataFirma');
-        if (isChecked) {
-            dateInput.value = new Date().toISOString().split('T')[0];
-            dateInput.setAttribute('readonly', true);
-        } else {
-            dateInput.value = "";
-            dateInput.removeAttribute('readonly');
-        }
-    }
-
-    async function generaPDF() {
-        if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !document.getElementById('firmaImg').files[0]) {
-            Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e carica la firma.', 'error');
-            return;
-        }
-
-        salvaDatiLocali();
-        Swal.fire({ title: 'Generazione in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
-        try {
-            const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
-            const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-            const pages = pdfDoc.getPages();
-            const firstPage = pages[0];
-
-            // COORDINATE ESATTE MILLIMETRATE
-            const coords = {
-                sottoscritto: { x: 140, y: 725 }, 
-                natoA: { x: 120, y: 705 },
-                dataNascita: { x: 360, y: 705 },
-                residenteA: { x: 140, y: 685 },
-                via: { x: 330, y: 685 },
-                naapro: { x: 440, y: 665 },
-                quota: { x: 390, y: 625 },
-                comitato: { x: 70, y: 605 },
-                dataDal: { x: 120, y: 320 },
-                dataAl: { x: 270, y: 320 },
-                luogo: { x: 80, y: 105 }, 
-                dataFirma: { x: 160, y: 105 }
-            };
-
-            const drawText = (text, pos) => {
-                if (text) firstPage.drawText(text, { x: pos.x, y: pos.y, size: 10 });
-            };
-
-            const drawCross = (x, y) => {
-                firstPage.drawText('X', { x: x, y: y, size: 12 });
-            };
-            
-            const formatDataPDF = (d) => d ? d.split('-').reverse().join('/') : '';
-            const indirizzoCompleto = document.getElementById('tipoVia').value + ' ' + document.getElementById('nomeVia').value;
-
-            drawText(document.getElementById('sottoscritto').value, coords.sottoscritto);
-            drawText(document.getElementById('natoA').value, coords.natoA);
-            drawText(formatDataPDF(document.getElementById('dataNascita').value), coords.dataNascita);
-            drawText(document.getElementById('residenteA').value, coords.residenteA);
-            drawText(indirizzoCompleto, coords.via);
-            drawText(document.getElementById('naapro').value, coords.naapro);
-            drawText(document.getElementById('quota').value, coords.quota);
-            drawText(document.getElementById('comitato').value, coords.comitato);
-            
-            drawText(formatDataPDF(document.getElementById('dataDal').value), coords.dataDal);
-            drawText(formatDataPDF(document.getElementById('dataAl').value), coords.dataAl);
-            drawText(document.getElementById('luogoFirma').value, coords.luogo);
-            drawText(formatDataPDF(document.getElementById('dataFirma').value), coords.dataFirma);
-
-            const ts = document.getElementById('tipoServizio').value;
-            const det = document.getElementById('dettaglioServizio').value;
-            
-            // COORDINATE ESATTE SERVIZIO
-            if (ts === 'concorso') { drawCross(65, 445); drawText(det, { x: 200, y: 445 }); }
-            else if (ts === 'poligoni') { drawCross(65, 420); drawText(det, { x: 200, y: 420 }); }
-            else if (ts === 'logistico') { drawCross(65, 395); drawText(det, { x: 200, y: 395 }); }
-            else if (ts === 'nomina') { drawCross(325, 445); }
-            else if (ts === 'corsi') { drawCross(325, 420); }
-            else if (ts === 'altro') { drawCross(325, 395); drawText(det, { x: 380, y: 395 }); }
-
-            // COORDINATE ESATTE LAVORO
-            const lav = document.querySelector('input[name="lavoro"]:checked');
-            if(lav) {
-                const lavVal = lav.value;
-                if (lavVal === 'consenso') { drawCross(65, 280); drawText(document.getElementById('dettaglioLavoro').value, { x: 100, y: 240 }); }
-                else if (lavVal === 'libero_obblighi') drawCross(325, 280);
-                else if (lavVal === 'libero_prof') drawCross(325, 258);
-                else if (lavVal === 'pensionato') drawCross(325, 237);
-                else if (lavVal === 'studente') drawCross(325, 215);
-                else if (lavVal === 'disoccupato') drawCross(325, 195);
-            }
-
-            const firmaFile = document.getElementById('firmaImg').files[0];
-            const firmaArrayBuffer = await firmaFile.arrayBuffer();
-            let pdfImage;
-            if (firmaFile.type === 'image/jpeg') {
-                pdfImage = await pdfDoc.embedJpg(firmaArrayBuffer);
-            } else {
-                pdfImage = await pdfDoc.embedPng(firmaArrayBuffer);
-            }
-            
-            const dims = pdfImage.scale(0.2); 
-            firstPage.drawImage(pdfImage, {
-                x: 400, 
-                y: 50,  
-                width: dims.width,
-                height: dims.height,
-            });
-
-            const pdfBytes = await pdfDoc.save();
-            const base64Data = arrayBufferToBase64(pdfBytes);
-
-            Swal.close();
-
-            Swal.fire({
-                title: 'PDF Generato con successo!',
-                text: "Vuoi mandare una copia della DSA al tuo indirizzo mail?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sì, inviala',
-                cancelButtonText: 'No, salva e basta'
-            }).then((result) => {
-                let sendToUser = result.isConfirmed;
-                
-                const grado = document.getElementById('grado').value;
-                const nomeCognome = document.getElementById('sottoscritto').value;
-                const dDal = document.getElementById('dataDal').value;
-                const dAl = document.getElementById('dataAl').value;
-                
-                const formatDataFile = (d) => d ? d.split('-').reverse().join('-') : '';
-                const dDalF = formatDataFile(dDal);
-                const dAlF = formatDataFile(dAl);
-                
-                let testoOggetto = document.getElementById('dettaglioServizio').value;
-                if (!testoOggetto || testoOggetto.trim() === "") {
-                    const selectEl = document.getElementById('tipoServizio');
-                    testoOggetto = selectEl.options[selectEl.selectedIndex].text;
+                // Disegna le linee della griglia (Rosse per Y, Blu per X)
+                for (let i = 0; i < 850; i += 10) {
+                    let isMajor = i % 50 === 0;
+                    firstPage.drawLine({ start: { x: 0, y: i }, end: { x: 600, y: i }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+                    if (isMajor) firstPage.drawText('Y:' + i, { x: 5, y: i + 2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
                 }
-                
-                // Formato con spazi e barra
-                const subj = `${grado} ${nomeCognome} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
-                
-                inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser);
-            });
+                for (let i = 0; i < 600; i += 10) {
+                    let isMajor = i % 50 === 0;
+                    firstPage.drawLine({ start: { x: i, y: 0 }, end: { x: i, y: 850 }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                    if (isMajor) firstPage.drawText('X:' + i, { x: i + 2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                }
 
-        } catch (error) {
-            Swal.fire('Errore', 'Si è verificato un errore nella generazione del PDF: ' + error.message, 'error');
-        }
-    }
-
-    function arrayBufferToBase64(buffer) {
-        let binary = '';
-        const bytes = new Uint8Array(buffer);
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return window.btoa(binary);
-    }
-
-    function inviaBackendScript(pdfBase64, userEmail, subject, filenamePrefix, sendToUser) {
-        Swal.fire({ title: 'Invio in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
-        const payload = {
-            pdfData: pdfBase64,
-            email: userEmail,
-            subject: subject,
-            sendToUser: sendToUser,
-            filename: `${filenamePrefix}.pdf`
-        };
-
-        fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.status === 'success') {
-                Swal.fire('Inviata!', 'La DSA è stata processata correttamente.', 'success');
-            } else {
-                Swal.fire('Errore', 'Errore server: ' + data.message, 'error');
+                // Genera e scarica il file
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'PDF_Griglia_Vuoto.pdf';
+                a.click();
+            } catch (error) {
+                alert("Errore durante la generazione. Verifica che il file 'Nuovo DSA_PDF.pdf' sia caricato correttamente. Dettagli: " + error.message);
             }
-        })
-        .catch(err => {
-            Swal.fire('Errore di Connessione', 'Non sono riuscito a contattare il server.', 'error');
-        });
-    }
-</script>
+        }
+    </script>
 </body>
 </html>
