@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Stampa Griglia Vuota</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
+</head>
+<body style="text-align: center; font-family: sans-serif; padding: 50px; background-color: #f4f6f8;">
+    <h2 style="color: #d32f2f;">Scarica Griglia per Misurazioni</h2>
+    <p>Clicca il pulsante per scaricare il PDF originale con la griglia stampata sopra (senza testi finti).</p>
+    <button onclick="generaGrigliaVuota()" style="padding: 15px 30px; font-size: 18px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer;">Scarica PDF con Griglia</button>
+
+    <script>
+        async function generaGrigliaVuota() {
+            try {
+                // Prende il PDF vergine
+                const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
+                const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+
+                // Disegna solo la griglia
+                for (let i = 0; i < 850; i += 10) {
+                    let isMajor = i % 50 === 0;
+                    firstPage.drawLine({ start: { x: 0, y: i }, end: { x: 600, y: i }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+                    if (isMajor) firstPage.drawText('Y:' + i, { x: 5, y: i + 2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+                }
+                for (let i = 0; i < 600; i += 10) {
+                    let isMajor = i % 50 === 0;
+                    firstPage.drawLine({ start: { x: i, y: 0 }, end: { x: i, y: 850 }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                    if (isMajor) firstPage.drawText('X:' + i, { x: i + 2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                }
+
+                // Genera il file
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'PDF_Griglia_Vuoto.pdf';
+                a.click();
+            } catch (error) {
+                alert("Errore. Assicurati che il file 'Nuovo DSA_PDF.pdf' sia presente. Dettagli: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
