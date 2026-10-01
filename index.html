@@ -2,47 +2,490 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore Griglia PDF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENERAZIONE DSA</title>
     <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --primary-color: #d32f2f; --secondary-color: #1976d2; --bg-color: #f4f6f8; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], input[type="email"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .address-group { display: flex; gap: 10px; }
+        .address-group select { width: 30%; }
+        .address-group input { width: 70%; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 20px; background: #ffebee; padding: 10px; border-radius: 5px; border-left: 4px solid var(--primary-color);}
+        .checkbox-oggi { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #e3f2fd; padding: 10px; border-radius: 5px; }
+        .btn { background-color: var(--secondary-color); color: white; padding: 15px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background-color: #115293; }
+        .btn-settings { background-color: #555; margin-top: 15px; }
+        .btn-settings:hover { background-color: #333; }
+        .section-title { background: #eee; padding: 10px; border-left: 5px solid var(--primary-color); margin-top: 30px; margin-bottom: 15px; font-weight: bold; }
+        .hidden { display: none; }
+        .radio-list label { font-weight: normal; display: block; margin-bottom: 5px;}
+        input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
+        
+        /* Stili Modal Calibrazione */
+        #modalCalibrazione { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; overflow-y: auto; padding: 20px; }
+        .modal-content { background: #fff; max-width: 900px; margin: auto; padding: 25px; border-radius: 10px; }
+        .coord-row { display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .coord-label { flex: 1; font-weight: bold; font-size: 14px;}
+        .coord-input { width: 80px !important; margin-left: 10px; }
+        .calib-header { display: flex; justify-content: space-between; position: sticky; top: -25px; background: #fff; padding: 15px 0; border-bottom: 2px solid #ccc; z-index: 10; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
 </head>
-<body style="text-align: center; font-family: sans-serif; padding: 50px; background-color: #f4f6f8;">
-    <h2 style="color: #d32f2f;">Strumento di Calibrazione PDF</h2>
-    <p>Clicca il pulsante qui sotto per scaricare il PDF originale con la griglia millimetrata sovrapposta.</p>
-    <button onclick="generaGriglia()" style="padding: 15px 30px; font-size: 18px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer;">Scarica PDF con Griglia</button>
+<body>
 
-    <script>
-        async function generaGriglia() {
-            try {
-                // Recupera il PDF vergine caricato su GitHub
-                const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
-                const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-                const pages = pdfDoc.getPages();
-                const firstPage = pages[0];
+<div class="container">
+    <h1>GENERAZIONE DSA</h1>
 
-                // Disegna le linee della griglia (Rosse per Y, Blu per X)
+    <!-- FORM NORMALE -->
+    <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
+    <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
+    <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
+    <div class="form-group"><label>Nato a</label><input type="text" id="natoA" required></div>
+    <div class="form-group"><label>Il (Data di nascita)</label><input type="date" id="dataNascita" required></div>
+    <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required></div>
+    
+    <div class="form-group">
+        <label>Indirizzo</label>
+        <div class="address-group">
+            <select id="tipoVia">
+                <option value="Via">Via</option>
+                <option value="Piazza">Piazza</option>
+                <option value="Viale">Viale</option>
+                <option value="Vicolo">Vicolo</option>
+                <option value="Corso">Corso</option>
+                <option value="Largo">Largo</option>
+                <option value="Strada">Strada</option>
+            </select>
+            <input type="text" id="nomeVia" required>
+        </div>
+    </div>
+
+    <div class="form-group"><label>N.A.A.Pro di</label><input type="text" id="naapro" required></div>
+    <div class="form-group"><label>Quota associativa per l'anno</label><input type="text" id="quota" required></div>
+    <div class="form-group"><label>Comitato Locale di Croce Rossa</label><input type="text" id="comitato" required></div>
+    <div class="form-group"><label>Indirizzo Email Personale</label><input type="email" id="email" required></div>
+    <div class="form-group"><label>Lì</label><input type="text" id="luogoFirma" required></div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="editData" onchange="toggleEdit()">
+        <label for="editData" style="margin:0; font-weight: bold; color: var(--primary-color);">Modifica dati anagrafici salvati</label>
+    </div>
+
+    <div class="section-title">Dettagli Servizio</div>
+    <div class="form-group">
+        <label>Tipo di Servizio (Art. 1656)</label>
+        <select id="tipoServizio" onchange="checkServizio()" required>
+            <option value="">-- Seleziona --</option>
+            <option value="concorso">Concorso Sanitario D.O.B. a:</option>
+            <option value="poligoni">Assistenza Sa. Poligoni/Reggimenti a:</option>
+            <option value="logistico">Supporto Amm.vo/Logistico a:</option>
+            <option value="nomina">1ª Nomina Personale Direttivo presso CdM</option>
+            <option value="corsi">Corsi Formazione/Addestramento</option>
+            <option value="altro">Altro:</option>
+        </select>
+    </div>
+    <div class="form-group hidden" id="dettaglioServizioDiv">
+        <label>Specificare</label>
+        <input type="text" id="dettaglioServizio">
+    </div>
+
+    <div class="form-group">
+        <label>Periodo Richiamo</label>
+        <div style="display: flex; gap: 10px;">
+            <div style="width: 50%;"><label>Dal</label><input type="date" id="dataDal" required></div>
+            <div style="width: 50%;"><label>Al</label><input type="date" id="dataAl" required></div>
+        </div>
+    </div>
+
+    <div class="section-title">Posizione Lavorativa</div>
+    <div class="form-group radio-list">
+        <label><input type="radio" name="lavoro" value="consenso" onchange="checkLavoro()" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
+        <input type="text" id="dettaglioLavoro" class="hidden" placeholder="Specificare Ente/Datore">
+        <label><input type="radio" name="lavoro" value="libero_obblighi" onchange="checkLavoro()"> LIBERO DA OBBLIGHI LAVORATIVI</label>
+        <label><input type="radio" name="lavoro" value="libero_prof" onchange="checkLavoro()"> LIBERO PROFESSIONISTA</label>
+        <label><input type="radio" name="lavoro" value="pensionato" onchange="checkLavoro()"> PENSIONATO</label>
+        <label><input type="radio" name="lavoro" value="studente" onchange="checkLavoro()"> STUDENTE</label>
+        <label><input type="radio" name="lavoro" value="disoccupato" onchange="checkLavoro()"> DISOCCUPATO</label>
+    </div>
+
+    <div class="section-title">Firma e Data Odierna</div>
+    <div class="checkbox-oggi">
+        <input type="checkbox" id="dataOggiCheck" onchange="toggleDataOggi()">
+        <label for="dataOggiCheck" style="margin:0;">Inserisci data di oggi automaticamente</label>
+    </div>
+    <div class="form-group">
+        <label>Data Firma</label>
+        <input type="date" id="dataFirma">
+    </div>
+
+    <div class="form-group">
+        <label>Carica Firma (Scatta foto o carica immagine PNG/JPG)</label>
+        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" required>
+    </div>
+
+    <br>
+    <button class="btn" onclick="generaPDF(false)">Crea DSA (Invio Mail)</button>
+    <button class="btn btn-settings" onclick="apriCalibrazione()">⚙️ Regola Posizioni di Stampa (Calibrazione)</button>
+</div>
+
+<!-- MODAL CALIBRAZIONE -->
+<div id="modalCalibrazione">
+    <div class="modal-content">
+        <div class="calib-header">
+            <h2 style="margin:0;">Calibrazione Coordinate (X, Y)</h2>
+            <div>
+                <button style="padding:10px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="salvaCalibrazione()">Salva Coordinate</button>
+                <button style="padding:10px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="chiudiCalibrazione()">Chiudi</button>
+            </div>
+        </div>
+        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato.</p>
+        <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️ Genera PDF di Prova con Griglia</button>
+        
+        <div class="grid-2" id="calibContainer">
+            <!-- Riempito da JavaScript -->
+        </div>
+        <div style="margin-top:20px; text-align:center;">
+            <button style="padding:10px; background:#999; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="resetCalibrazione()">🔄 Ripristina Valori Iniziali</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
+    const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
+
+    // SETUP COORDINATE PREDEFINITE (L'ultima configurazione nota)
+    const coordDef = {
+        sottoscritto: { name: "Nome e Cognome", x: 140, y: 725 },
+        natoA: { name: "Nato a", x: 120, y: 705 },
+        dataNascita: { name: "Data Nascita", x: 360, y: 705 },
+        residenteA: { name: "Residente a", x: 140, y: 685 },
+        via: { name: "Indirizzo (Via + Nome)", x: 330, y: 685 },
+        naapro: { name: "N.A.A.Pro", x: 440, y: 665 },
+        quota: { name: "Quota (Anno)", x: 390, y: 625 },
+        comitato: { name: "Comitato", x: 70, y: 605 },
+        dataDal: { name: "Data Dal", x: 120, y: 320 },
+        dataAl: { name: "Data Al", x: 270, y: 320 },
+        luogoFirma: { name: "Lì (Luogo)", x: 80, y: 105 },
+        dataFirma: { name: "Data Firma", x: 160, y: 105 },
+        imgFirma: { name: "Immagine Firma", x: 400, y: 50 },
+        
+        // CROCETTE SERVIZIO
+        cx_concorso: { name: "[X] Concorso San.", x: 65, y: 445 },
+        tx_concorso: { name: "[Testo] Concorso San.", x: 200, y: 445 },
+        cx_poligoni: { name: "[X] Poligoni", x: 65, y: 420 },
+        tx_poligoni: { name: "[Testo] Poligoni", x: 200, y: 420 },
+        cx_logistico: { name: "[X] Logistico", x: 65, y: 395 },
+        tx_logistico: { name: "[Testo] Logistico", x: 200, y: 395 },
+        cx_nomina: { name: "[X] 1a Nomina", x: 325, y: 445 },
+        cx_corsi: { name: "[X] Corsi", x: 325, y: 420 },
+        cx_altro: { name: "[X] Altro", x: 325, y: 395 },
+        tx_altro: { name: "[Testo] Altro", x: 380, y: 395 },
+        
+        // CROCETTE LAVORO
+        cx_consenso: { name: "[X] Consenso Ente", x: 65, y: 280 },
+        tx_consenso: { name: "[Testo] Ente/Datore", x: 100, y: 240 },
+        cx_libero: { name: "[X] Libero Obblighi", x: 325, y: 280 },
+        cx_prof: { name: "[X] Libero Prof.", x: 325, y: 258 },
+        cx_pens: { name: "[X] Pensionato", x: 325, y: 237 },
+        cx_stud: { name: "[X] Studente", x: 325, y: 215 },
+        cx_disocc: { name: "[X] Disoccupato", x: 325, y: 195 }
+    };
+
+    // Carica Coordinate da LocalStorage o usa Predefinite
+    let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
+    if (!currentCoords) currentCoords = JSON.parse(JSON.stringify(coordDef)); // Copia profonda
+
+    window.onload = () => {
+        let hasData = false;
+        campiLocali.forEach(id => {
+            const val = localStorage.getItem(id);
+            if (val) { document.getElementById(id).value = val; hasData = true; }
+        });
+        if (hasData) { lockFields(true); document.getElementById('editData').checked = false; }
+        generaCampiCalibrazione();
+    };
+
+    function lockFields(lock) {
+        campiLocali.forEach(id => {
+            const el = document.getElementById(id);
+            if (lock) {
+                if(el.tagName === 'SELECT') el.setAttribute('disabled', true);
+                else el.setAttribute('readonly', true);
+            } else {
+                if(el.tagName === 'SELECT') el.removeAttribute('disabled');
+                else el.removeAttribute('readonly');
+            }
+        });
+    }
+
+    function toggleEdit() { lockFields(!document.getElementById('editData').checked); }
+    function salvaDatiLocali() {
+        campiLocali.forEach(id => localStorage.setItem(id, document.getElementById(id).value));
+        lockFields(true); document.getElementById('editData').checked = false;
+    }
+
+    function checkServizio() {
+        const val = document.getElementById('tipoServizio').value;
+        const div = document.getElementById('dettaglioServizioDiv');
+        if (['concorso', 'poligoni', 'logistico', 'altro'].includes(val)) div.classList.remove('hidden');
+        else { div.classList.add('hidden'); document.getElementById('dettaglioServizio').value = ""; }
+    }
+
+    function checkLavoro() {
+        const rad = document.querySelector('input[name="lavoro"]:checked');
+        if(!rad) return;
+        const inp = document.getElementById('dettaglioLavoro');
+        if (rad.value === 'consenso') inp.classList.remove('hidden');
+        else { inp.classList.add('hidden'); inp.value = ""; }
+    }
+
+    function toggleDataOggi() {
+        const isChecked = document.getElementById('dataOggiCheck').checked;
+        const dInput = document.getElementById('dataFirma');
+        if (isChecked) { dInput.value = new Date().toISOString().split('T')[0]; dInput.setAttribute('readonly', true); } 
+        else { dInput.value = ""; dInput.removeAttribute('readonly'); }
+    }
+
+    // --- FUNZIONI MODAL CALIBRAZIONE ---
+    function apriCalibrazione() { document.getElementById('modalCalibrazione').style.display = 'block'; }
+    function chiudiCalibrazione() { document.getElementById('modalCalibrazione').style.display = 'none'; }
+    
+    function generaCampiCalibrazione() {
+        const container = document.getElementById('calibContainer');
+        container.innerHTML = '';
+        let col1 = '<div style="padding-right:10px; border-right:1px solid #ddd;">';
+        let col2 = '<div>';
+        let count = 0;
+        const keys = Object.keys(currentCoords);
+        
+        keys.forEach(key => {
+            const item = currentCoords[key];
+            const html = `
+                <div class="coord-row">
+                    <span class="coord-label">${item.name}</span>
+                    X: <input type="number" id="calib_x_${key}" class="coord-input" value="${item.x}">
+                    Y: <input type="number" id="calib_y_${key}" class="coord-input" value="${item.y}">
+                </div>
+            `;
+            if(count < keys.length / 2) col1 += html; else col2 += html;
+            count++;
+        });
+        col1 += '</div>'; col2 += '</div>';
+        container.innerHTML = col1 + col2;
+    }
+
+    function salvaCalibrazione() {
+        Object.keys(currentCoords).forEach(key => {
+            currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
+            currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
+        });
+        localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
+        Swal.fire('Salvato!', 'Le coordinate sono state salvate.', 'success');
+    }
+
+    function resetCalibrazione() {
+        if(confirm("Vuoi riportare tutto alle impostazioni iniziali?")) {
+            currentCoords = JSON.parse(JSON.stringify(coordDef));
+            localStorage.removeItem('pdfCoords');
+            generaCampiCalibrazione();
+        }
+    }
+
+    // --- GENERAZIONE PDF (isTest=true fa solo il download con la griglia, false manda la mail) ---
+    async function generaPDF(isTest = false) {
+        if (!isTest) {
+            if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !document.getElementById('firmaImg').files[0]) {
+                Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e carica la firma.', 'error');
+                return;
+            }
+            salvaDatiLocali();
+        }
+
+        // Se siamo in modalità test, aggiorno le variabili correnti dal form della calibrazione prima di generare
+        if (isTest) {
+            Object.keys(currentCoords).forEach(key => {
+                currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
+                currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
+            });
+        }
+
+        Swal.fire({ title: 'Generazione in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+        try {
+            const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
+            const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
+
+            // Disegna griglia se è un test
+            if (isTest) {
                 for (let i = 0; i < 850; i += 10) {
                     let isMajor = i % 50 === 0;
                     firstPage.drawLine({ start: { x: 0, y: i }, end: { x: 600, y: i }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.8, 0.2, 0.2) });
-                    if (isMajor) firstPage.drawText('Y:' + i, { x: 5, y: i + 2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+                    if(isMajor) firstPage.drawText('Y:'+i, { x: 5, y: i+2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
                 }
                 for (let i = 0; i < 600; i += 10) {
                     let isMajor = i % 50 === 0;
                     firstPage.drawLine({ start: { x: i, y: 0 }, end: { x: i, y: 850 }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.2, 0.2, 0.8) });
-                    if (isMajor) firstPage.drawText('X:' + i, { x: i + 2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                    if(isMajor) firstPage.drawText('X:'+i, { x: i+2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
                 }
-
-                // Genera e scarica il file
-                const pdfBytes = await pdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'PDF_Griglia_Vuoto.pdf';
-                a.click();
-            } catch (error) {
-                alert("Errore durante la generazione. Verifica che il file 'Nuovo DSA_PDF.pdf' sia caricato correttamente. Dettagli: " + error.message);
             }
+
+            const drawText = (text, posKey) => {
+                const pos = currentCoords[posKey];
+                if (text && pos) firstPage.drawText(text, { x: pos.x, y: pos.y, size: 10 });
+            };
+            const drawCross = (posKey) => {
+                const pos = currentCoords[posKey];
+                if (pos) firstPage.drawText('X', { x: pos.x, y: pos.y, size: 12 });
+            };
+
+            const formatDataPDF = (d) => d ? d.split('-').reverse().join('/') : '';
+            
+            // Dati (Reali o Dummy se test)
+            const getVal = (id, dummy) => isTest ? (document.getElementById(id).value || dummy) : document.getElementById(id).value;
+            
+            const vSottoscritto = getVal('sottoscritto', 'MARIO ROSSI');
+            const vNatoA = getVal('natoA', 'ROMA');
+            const vDataNascita = isTest ? (document.getElementById('dataNascita').value ? formatDataPDF(document.getElementById('dataNascita').value) : '01/01/1990') : formatDataPDF(document.getElementById('dataNascita').value);
+            const vResidenteA = getVal('residenteA', 'MILANO');
+            const vIndirizzo = isTest ? 'Via Test 123' : (document.getElementById('tipoVia').value + ' ' + document.getElementById('nomeVia').value);
+            const vNaapro = getVal('naapro', 'PADOVA');
+            const vQuota = getVal('quota', '2026');
+            const vComitato = getVal('comitato', 'VENEZIA');
+            const vDataDal = isTest ? (document.getElementById('dataDal').value ? formatDataPDF(document.getElementById('dataDal').value) : '10/10/2026') : formatDataPDF(document.getElementById('dataDal').value);
+            const vDataAl = isTest ? (document.getElementById('dataAl').value ? formatDataPDF(document.getElementById('dataAl').value) : '12/10/2026') : formatDataPDF(document.getElementById('dataAl').value);
+            const vLuogo = getVal('luogoFirma', 'MILANO');
+            const vDataF = isTest ? (document.getElementById('dataFirma').value ? formatDataPDF(document.getElementById('dataFirma').value) : '01/10/2026') : formatDataPDF(document.getElementById('dataFirma').value);
+
+            // Stampa Anagrafica
+            drawText(vSottoscritto, 'sottoscritto');
+            drawText(vNatoA, 'natoA');
+            drawText(vDataNascita, 'dataNascita');
+            drawText(vResidenteA, 'residenteA');
+            drawText(vIndirizzo, 'via');
+            drawText(vNaapro, 'naapro');
+            drawText(vQuota, 'quota');
+            drawText(vComitato, 'comitato');
+            drawText(vDataDal, 'dataDal');
+            drawText(vDataAl, 'dataAl');
+            drawText(vLuogo, 'luogoFirma');
+            drawText(vDataF, 'dataFirma');
+
+            // Stampa Servizio (In test stampiamo tutte le crocette per vedere l'allineamento)
+            const ts = document.getElementById('tipoServizio').value;
+            const det = getVal('dettaglioServizio', 'Testo di Prova');
+            
+            if (isTest || ts === 'concorso') { drawCross('cx_concorso'); drawText(det, 'tx_concorso'); }
+            if (isTest || ts === 'poligoni') { drawCross('cx_poligoni'); drawText(det, 'tx_poligoni'); }
+            if (isTest || ts === 'logistico') { drawCross('cx_logistico'); drawText(det, 'tx_logistico'); }
+            if (isTest || ts === 'nomina') { drawCross('cx_nomina'); }
+            if (isTest || ts === 'corsi') { drawCross('cx_corsi'); }
+            if (isTest || ts === 'altro') { drawCross('cx_altro'); drawText(det, 'tx_altro'); }
+
+            // Stampa Lavoro
+            const lav = document.querySelector('input[name="lavoro"]:checked');
+            const lavVal = lav ? lav.value : null;
+            const detLav = getVal('dettaglioLavoro', 'Azienda Test SRL');
+
+            if (isTest || lavVal === 'consenso') { drawCross('cx_consenso'); drawText(detLav, 'tx_consenso'); }
+            if (isTest || lavVal === 'libero_obblighi') { drawCross('cx_libero'); }
+            if (isTest || lavVal === 'libero_prof') { drawCross('cx_prof'); }
+            if (isTest || lavVal === 'pensionato') { drawCross('cx_pens'); }
+            if (isTest || lavVal === 'studente') { drawCross('cx_stud'); }
+            if (isTest || lavVal === 'disoccupato') { drawCross('cx_disocc'); }
+
+            // Firma Immagine (Se non c'è nel test, non disegna nulla)
+            const firmaFile = document.getElementById('firmaImg').files[0];
+            if (firmaFile) {
+                const firmaArrayBuffer = await firmaFile.arrayBuffer();
+                let pdfImage = firmaFile.type === 'image/jpeg' ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
+                const dims = pdfImage.scale(0.2); 
+                firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
+            } else if (isTest) {
+                firstPage.drawText('[QUI ANDRA LA FIRMA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
+            }
+
+            const pdfBytes = await pdfDoc.save();
+            
+            // SE E' UN TEST: SCARICA E BASTA
+            if (isTest) {
+                Swal.close();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = 'Test_Griglia_Posizioni.pdf';
+                link.click();
+                return;
+            }
+
+            // SE NON E' TEST: PROCEDURA STANDARD INVIO MAIL
+            const base64Data = arrayBufferToBase64(pdfBytes);
+            Swal.close();
+
+            Swal.fire({
+                title: 'PDF Generato con successo!',
+                text: "Vuoi mandare una copia della DSA al tuo indirizzo mail?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sì, inviala',
+                cancelButtonText: 'No, salva e basta'
+            }).then((result) => {
+                let sendToUser = result.isConfirmed;
+                const grado = document.getElementById('grado').value;
+                const nomeCognome = document.getElementById('sottoscritto').value;
+                const formatDataFile = (d) => d ? d.split('-').reverse().join('-') : '';
+                const dDalF = formatDataFile(document.getElementById('dataDal').value);
+                const dAlF = formatDataFile(document.getElementById('dataAl').value);
+                
+                let testoOggetto = document.getElementById('dettaglioServizio').value;
+                if (!testoOggetto || testoOggetto.trim() === "") {
+                    const selectEl = document.getElementById('tipoServizio');
+                    testoOggetto = selectEl.options[selectEl.selectedIndex].text;
+                }
+                
+                const subj = `${grado} ${nomeCognome} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
+                inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser);
+            });
+
+        } catch (error) {
+            Swal.fire('Errore', 'Si è verificato un errore: ' + error.message, 'error');
         }
-    </script>
+    }
+
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        return window.btoa(binary);
+    }
+
+    function inviaBackendScript(pdfBase64, userEmail, subject, filenamePrefix, sendToUser) {
+        Swal.fire({ title: 'Invio in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        const payload = { pdfData: pdfBase64, email: userEmail, subject: subject, sendToUser: sendToUser, filename: `${filenamePrefix}.pdf` };
+        
+        fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') Swal.fire('Inviata!', 'La DSA è stata processata correttamente.', 'success');
+            else Swal.fire('Errore', 'Errore server: ' + data.message, 'error');
+        })
+        .catch(err => Swal.fire('Errore di Connessione', 'Non sono riuscito a contattare il server.', 'error'));
+    }
+</script>
 </body>
 </html>
