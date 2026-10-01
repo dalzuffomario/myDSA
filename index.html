@@ -40,7 +40,7 @@
     <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required></div>
     
     <div class="form-group">
-        <label>Indirizzo (Via, Piazza, ecc.)</label>
+        <label>Indirizzo</label>
         <div class="address-group">
             <select id="tipoVia">
                 <option value="Via">Via</option>
@@ -218,38 +218,20 @@
             const pages = pdfDoc.getPages();
             const firstPage = pages[0];
 
-            // ---------------------------------------------------------
-            // INIZIO TRUCCO GRIGLIA: Disegna una griglia per trovare le coordinate esatte.
-            // Quando non ti servirà più, cancella questo blocco.
-            // ---------------------------------------------------------
-            for (let i = 0; i < 850; i += 10) {
-                let isMajor = i % 50 === 0;
-                firstPage.drawLine({ start: { x: 0, y: i }, end: { x: 600, y: i }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.8, 0.2, 0.2) });
-                if (isMajor) firstPage.drawText('Y:' + i, { x: 5, y: i + 2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
-            }
-            for (let i = 0; i < 600; i += 10) {
-                let isMajor = i % 50 === 0;
-                firstPage.drawLine({ start: { x: i, y: 0 }, end: { x: i, y: 850 }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.2, 0.2, 0.8) });
-                if (isMajor) firstPage.drawText('X:' + i, { x: i + 2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
-            }
-            // ---------------------------------------------------------
-            // FINE TRUCCO GRIGLIA
-            // ---------------------------------------------------------
-
-            // QUI SOTTO POTRAI INSERIRE I NUMERI ESATTI LETTI DALLA GRIGLIA
+            // COORDINATE ESATTE MILLIMETRATE
             const coords = {
-                sottoscritto: { x: 150, y: 685 }, 
-                natoA: { x: 120, y: 665 },
-                dataNascita: { x: 420, y: 665 },
-                residenteA: { x: 150, y: 645 },
-                via: { x: 380, y: 645 },
-                naapro: { x: 480, y: 625 },
-                quota: { x: 450, y: 602 },
-                comitato: { x: 200, y: 585 },
-                dataDal: { x: 130, y: 325 },
-                dataAl: { x: 280, y: 325 },
-                luogo: { x: 350, y: 115 }, 
-                dataFirma: { x: 450, y: 115 }
+                sottoscritto: { x: 140, y: 725 }, 
+                natoA: { x: 120, y: 705 },
+                dataNascita: { x: 360, y: 705 },
+                residenteA: { x: 140, y: 685 },
+                via: { x: 330, y: 685 },
+                naapro: { x: 440, y: 665 },
+                quota: { x: 390, y: 625 },
+                comitato: { x: 70, y: 605 },
+                dataDal: { x: 120, y: 320 },
+                dataAl: { x: 270, y: 320 },
+                luogo: { x: 80, y: 105 }, 
+                dataFirma: { x: 160, y: 105 }
             };
 
             const drawText = (text, pos) => {
@@ -280,22 +262,24 @@
             const ts = document.getElementById('tipoServizio').value;
             const det = document.getElementById('dettaglioServizio').value;
             
-            if (ts === 'concorso') { drawCross(60, 440); drawText(det, { x: 200, y: 440 }); }
-            else if (ts === 'poligoni') { drawCross(60, 420); drawText(det, { x: 200, y: 420 }); }
-            else if (ts === 'logistico') { drawCross(60, 400); drawText(det, { x: 200, y: 400 }); }
-            else if (ts === 'nomina') { drawCross(320, 440); }
-            else if (ts === 'corsi') { drawCross(320, 420); }
-            else if (ts === 'altro') { drawCross(320, 405); drawText(det, { x: 380, y: 405 }); }
+            // COORDINATE ESATTE SERVIZIO
+            if (ts === 'concorso') { drawCross(65, 445); drawText(det, { x: 200, y: 445 }); }
+            else if (ts === 'poligoni') { drawCross(65, 420); drawText(det, { x: 200, y: 420 }); }
+            else if (ts === 'logistico') { drawCross(65, 395); drawText(det, { x: 200, y: 395 }); }
+            else if (ts === 'nomina') { drawCross(325, 445); }
+            else if (ts === 'corsi') { drawCross(325, 420); }
+            else if (ts === 'altro') { drawCross(325, 395); drawText(det, { x: 380, y: 395 }); }
 
+            // COORDINATE ESATTE LAVORO
             const lav = document.querySelector('input[name="lavoro"]:checked');
             if(lav) {
                 const lavVal = lav.value;
-                if (lavVal === 'consenso') { drawCross(60, 210); drawText(document.getElementById('dettaglioLavoro').value, { x: 150, y: 190 }); }
-                else if (lavVal === 'libero_obblighi') drawCross(320, 230);
-                else if (lavVal === 'libero_prof') drawCross(320, 210);
-                else if (lavVal === 'pensionato') drawCross(320, 190);
-                else if (lavVal === 'studente') drawCross(320, 170);
-                else if (lavVal === 'disoccupato') drawCross(320, 150);
+                if (lavVal === 'consenso') { drawCross(65, 280); drawText(document.getElementById('dettaglioLavoro').value, { x: 100, y: 240 }); }
+                else if (lavVal === 'libero_obblighi') drawCross(325, 280);
+                else if (lavVal === 'libero_prof') drawCross(325, 258);
+                else if (lavVal === 'pensionato') drawCross(325, 237);
+                else if (lavVal === 'studente') drawCross(325, 215);
+                else if (lavVal === 'disoccupato') drawCross(325, 195);
             }
 
             const firmaFile = document.getElementById('firmaImg').files[0];
@@ -309,7 +293,7 @@
             
             const dims = pdfImage.scale(0.2); 
             firstPage.drawImage(pdfImage, {
-                x: 350, 
+                x: 400, 
                 y: 50,  
                 width: dims.width,
                 height: dims.height,
@@ -332,7 +316,6 @@
             }).then((result) => {
                 let sendToUser = result.isConfirmed;
                 
-                // FORMATTAZIONE NOME CORRETTA CON /
                 const grado = document.getElementById('grado').value;
                 const nomeCognome = document.getElementById('sottoscritto').value;
                 const dDal = document.getElementById('dataDal').value;
@@ -348,7 +331,7 @@
                     testoOggetto = selectEl.options[selectEl.selectedIndex].text;
                 }
                 
-                // Genera la stringa esatta: "Sergente Mario Dal Zuffo - 04-10-2026 / 04-10-2026 - rappresentanza feltre"
+                // Formato con spazi e barra
                 const subj = `${grado} ${nomeCognome} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
                 
                 inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser);
