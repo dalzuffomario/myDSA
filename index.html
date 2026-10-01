@@ -56,7 +56,7 @@
 <!-- SCHERMATA RITAGLIO FIRMA -->
 <div id="modalRitaglio">
     <h3 style="color: white; margin-bottom: 10px;">Ritaglia la tua firma</h3>
-    <p style="color: #ccc; font-size: 14px; margin-bottom: 20px; text-align: center; padding: 0 10px;">Usa le dita per spostare il riquadro ed escludere il tavolo o lo sfondo.</p>
+    <p style="color: #ccc; font-size: 14px; margin-bottom: 20px; text-align: center; padding: 0 10px;">Usa le dita per fare zoom o allargare il riquadro ed escludere il tavolo.</p>
     <div class="crop-container">
         <img id="imageToCrop" src="" style="display: block; max-width: 100%;">
     </div>
@@ -189,9 +189,9 @@
         <p style="color:#666;">Le coordinate qui sotto vengono mantenute in memoria finché non svuoti la cache. Per renderle definitive su tutti i PC, usa "Copia per GitHub".</p>
         
         <div style="background: #e3f2fd; padding: 15px; margin-bottom: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
-            <strong style="color: #1976d2;">🔍 Grandezza Immagine Firma (%):</strong>
+            <strong style="color: #1976d2;">🔍 Larghezza Massima Firma (px):</strong>
             <div>
-                <input type="number" id="calibScaleFirma" style="width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-weight: bold; text-align: center;" min="1" max="100"> %
+                <input type="number" id="calibLarghezzaFirma" style="width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-weight: bold; text-align: center;" min="50" max="400">
             </div>
         </div>
 
@@ -211,7 +211,7 @@
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
     // --- INIZIO BLOCCO DA COPIARE E SOSTITUIRE SU GITHUB ---
-    const SCALE_FIRMA_DEF = 17;
+    const LARGHEZZA_FIRMA_DEF = 150;
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 120, y: 725 },
         natoA: { name: "Nato a", x: 350, y: 725 },
@@ -249,7 +249,7 @@
     // --- FINE BLOCCO DA COPIARE ---
 
     let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
-    let currentScaleFirma = parseInt(localStorage.getItem('pdfScaleFirma')) || SCALE_FIRMA_DEF;
+    let currentLarghezzaFirma = parseInt(localStorage.getItem('pdfLarghezzaFirma')) || LARGHEZZA_FIRMA_DEF;
 
     if (!currentCoords || !currentCoords.tx_corsi) { 
         currentCoords = JSON.parse(JSON.stringify(coordDef)); 
@@ -283,7 +283,8 @@
                 viewMode: 1,
                 autoCropArea: 0.8,
                 background: false,
-                zoomable: false,
+                zoomable: true,       // Permette di zoomare la foto
+                cropBoxResizable: true, // Permette di allargare/stringere il riquadro
                 dragMode: 'move'
             });
         }
@@ -364,7 +365,7 @@
     }
 
     function apriCalibrazione() { 
-        document.getElementById('calibScaleFirma').value = currentScaleFirma;
+        document.getElementById('calibLarghezzaFirma').value = currentLarghezzaFirma;
         document.getElementById('modalCalibrazione').style.display = 'block'; 
     }
     function chiudiCalibrazione() { document.getElementById('modalCalibrazione').style.display = 'none'; }
@@ -394,7 +395,7 @@
     }
 
     function aggiornaDagliInput() {
-        currentScaleFirma = parseInt(document.getElementById('calibScaleFirma').value) || SCALE_FIRMA_DEF;
+        currentLarghezzaFirma = parseInt(document.getElementById('calibLarghezzaFirma').value) || LARGHEZZA_FIRMA_DEF;
         Object.keys(currentCoords).forEach(key => {
             currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
             currentCoords[key].y = parseInt(document.getElementById(`calib_y_${key}`).value) || 0;
@@ -403,7 +404,7 @@
 
     function salvaCalibrazione() {
         aggiornaDagliInput();
-        localStorage.setItem('pdfScaleFirma', currentScaleFirma);
+        localStorage.setItem('pdfLarghezzaFirma', currentLarghezzaFirma);
         localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
         Swal.fire('Salvato', 'Le coordinate sono state salvate nel browser.', 'success');
     }
@@ -411,10 +412,10 @@
     function resetCalibrazione() {
         if(confirm("Vuoi riportare tutto alle impostazioni di fabbrica scritte nel codice base?")) {
             currentCoords = JSON.parse(JSON.stringify(coordDef));
-            currentScaleFirma = SCALE_FIRMA_DEF;
+            currentLarghezzaFirma = LARGHEZZA_FIRMA_DEF;
             localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
-            localStorage.setItem('pdfScaleFirma', currentScaleFirma);
-            document.getElementById('calibScaleFirma').value = currentScaleFirma;
+            localStorage.setItem('pdfLarghezzaFirma', currentLarghezzaFirma);
+            document.getElementById('calibLarghezzaFirma').value = currentLarghezzaFirma;
             generaCampiCalibrazione();
             Swal.fire('Resettato', 'Dati riportati alle coordinate base.', 'success');
         }
@@ -423,7 +424,7 @@
     function esportaCoordinateCodice() {
         aggiornaDagliInput();
         let codeStr = "    // --- INIZIO BLOCCO DA COPIARE E SOSTITUIRE SU GITHUB ---\n";
-        codeStr += `    const SCALE_FIRMA_DEF = ${currentScaleFirma};\n`;
+        codeStr += `    const LARGHEZZA_FIRMA_DEF = ${currentLarghezzaFirma};\n`;
         codeStr += "    const coordDef = {\n";
         const keys = Object.keys(currentCoords);
         keys.forEach((key, index) => {
@@ -437,7 +438,7 @@
 
         Swal.fire({
             title: 'Codice Generato!',
-            html: '<p style="font-size:14px; text-align:left;">Copia questo blocco e incollalo su GitHub al posto del vecchio <b>const SCALE_FIRMA_DEF = ...</b></p><textarea id="copyCodeArea" style="width:100%; height:250px; font-family:monospace; font-size:12px; padding:10px; background:#f4f4f4; border:1px solid #ccc;" readonly>' + codeStr + '</textarea>',
+            html: '<p style="font-size:14px; text-align:left;">Copia questo blocco e incollalo su GitHub al posto del vecchio blocco.</p><textarea id="copyCodeArea" style="width:100%; height:250px; font-family:monospace; font-size:12px; padding:10px; background:#f4f4f4; border:1px solid #ccc;" readonly>' + codeStr + '</textarea>',
             showCancelButton: true,
             confirmButtonText: 'Copia negli Appunti',
             cancelButtonText: 'Chiudi'
@@ -593,11 +594,23 @@
                 for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
                 
                 let pdfImage = isJpeg ? await pdfDoc.embedJpg(bytes.buffer) : await pdfDoc.embedPng(bytes.buffer);
-                const scaleFactor = currentScaleFirma / 100;
-                const dims = pdfImage.scale(scaleFactor); 
-                firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
+                
+                // BOX A GRANDEZZA FISSA PER EVITARE SOVRAPPOSIZIONI
+                const MAX_HEIGHT = 55; // Altezza massima invalicabile (non toccherà mai Y:77)
+                const MAX_WIDTH = currentLarghezzaFirma;
+
+                const scaleFactor = Math.min(MAX_WIDTH / pdfImage.width, MAX_HEIGHT / pdfImage.height);
+                const finalWidth = pdfImage.width * scaleFactor;
+                const finalHeight = pdfImage.height * scaleFactor;
+
+                firstPage.drawImage(pdfImage, { 
+                    x: currentCoords.imgFirma.x, 
+                    y: currentCoords.imgFirma.y, 
+                    width: finalWidth, 
+                    height: finalHeight 
+                });
             } else if (isTest) {
-                firstPage.drawText('[FIRMA RITAGLIATA QUI]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
+                firstPage.drawText('[FIRMA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
             }
 
             const pdfBytes = await pdfDoc.save();
