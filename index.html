@@ -74,11 +74,11 @@
     </div>
 
     <!-- DATI ANAGRAFICI -->
-    <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
+    <div class="section-title">Dati Anagrafici (Salvati SOLO in locale)</div>
     <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
     <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
     <div class="form-group"><label>Nato a</label><input type="text" id="natoA" required></div>
-    <div class="form-group"><label>Il (Data di nascita)</label><input type="date" id="dataNascita" required></div>
+    <div class="form-group"><label>Data di nascita</label><input type="date" id="dataNascita" required></div>
     <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required></div>
     
     <div class="form-group">
@@ -102,7 +102,7 @@
     <div class="form-group"><label>N.A.A.Pro di</label><input type="text" id="naapro" required></div>
     <div class="form-group"><label>Quota associativa per l'anno</label><input type="text" id="quota" required></div>
     <div class="form-group"><label>Comitato Locale di Croce Rossa</label><input type="text" id="comitato" required></div>
-    <div class="form-group"><label>Indirizzo Email Personale</label><input type="email" id="email" required></div>
+    <div class="form-group"><label>Indirizzo Email</label><input type="email" id="email" required></div>
     <div class="form-group"><label>Lì</label><input type="text" id="luogoFirma" required></div>
 
     <div class="checkbox-group">
@@ -172,7 +172,6 @@
     </div>
 
     <br>
-    <!-- BOTTONI AGGIORNATI -->
     <button class="btn" onclick="generaPDF(false)">Crea / invia DSA</button>
     <button class="btn btn-settings" onclick="richiediPasswordCalibrazione()">Login amministratore</button>
     
@@ -201,7 +200,7 @@
             </div>
         </div>
 
-        <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️️ Genera PDF di Prova con Griglia</button>
+        <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️ Genera PDF di Prova con Griglia</button>
         
         <div class="grid-2" id="calibContainer"></div>
         
@@ -651,8 +650,6 @@
 
             const grado = document.getElementById('grado').value;
             const nomeCognome = document.getElementById('sottoscritto').value;
-            const nomeFirma = `${grado} ${nomeCognome}`;
-            
             const formatDataFile = (d) => d ? d.split('-').reverse().join('-') : '';
             const dDalF = formatDataFile(document.getElementById('dataDal').value);
             const dAlF = formatDataFile(document.getElementById('dataAl').value);
@@ -663,25 +660,22 @@
                 testoOggetto = selectEl.options[selectEl.selectedIndex].text;
             }
             
-            const subj = `${nomeFirma} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
+            const subj = `${grado} ${nomeCognome} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
 
-            // Aggiornato il popup per adattarsi al nuovo flusso di invio automatico all'ufficio
             Swal.fire({
-                title: 'Inviare la DSA?',
-                text: "La DSA verrà inviata all'Ufficio Operazioni. Vuoi riceverne anche una copia al tuo indirizzo mail personale?",
+                title: 'PDF Generato con successo!',
+                text: "Vuoi mandare una copia della DSA al tuo indirizzo mail?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#999',
+                cancelButtonColor: '#d33',
                 confirmButtonText: 'Sì, mandami una copia',
                 cancelButtonText: 'No, voglio solo scaricarla'
             }).then((result) => {
                 let sendToUser = result.isConfirmed; 
                 
-                // Invia SEMPRE i dati al server (per Ufficio Operazioni)
-                inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser, nomeFirma);
+                inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser, `${grado} ${nomeCognome}`);
                 
-                // Se NON ha richiesto la mail, avvia il download locale del file
                 if (!sendToUser) {
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const link = document.createElement('a');
