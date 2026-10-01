@@ -167,8 +167,6 @@
             <br>
             <button type="button" onclick="rimuoviFirma()" style="margin-top: 10px; background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Sostituisci Firma</button>
         </div>
-        
-        <!-- Cambiato onchange per avviare il ritaglio -->
         <label id="firmaLabelTxt">Scatta una foto alla tua firma (ti faremo ritagliare il contorno)</label>
         <input type="file" id="firmaImg" accept="image/*" capture="environment" onchange="avviaRitaglio(event)" required>
     </div>
@@ -213,7 +211,7 @@
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
     // --- INIZIO BLOCCO DA COPIARE E SOSTITUIRE SU GITHUB ---
-    const SCALE_FIRMA_DEF = 24;
+    const SCALE_FIRMA_DEF = 17;
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 120, y: 725 },
         natoA: { name: "Nato a", x: 350, y: 725 },
@@ -258,7 +256,6 @@
         localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
     }
 
-    // Variabile per il cropper
     let cropper;
 
     window.onload = () => {
@@ -272,7 +269,6 @@
         generaCampiCalibrazione();
     };
 
-    // --- LOGICA RITAGLIO FIRMA (CROPPER.JS) ---
     function avviaRitaglio(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -287,7 +283,7 @@
                 viewMode: 1,
                 autoCropArea: 0.8,
                 background: false,
-                zoomable: false, // Impedisce di zoomare troppo dal telefono disallineando il frame
+                zoomable: false,
                 dragMode: 'move'
             });
         }
@@ -301,17 +297,9 @@
 
     function confermaRitaglio() {
         if (!cropper) return;
-        
-        // Estrae il ritaglio limitando la grandezza per mantenere il PDF leggero
-        const canvas = cropper.getCroppedCanvas({
-            maxWidth: 1000,
-            maxHeight: 1000
-        });
-        
-        // Salva l'immagine ritagliata come base64 nel local storage
+        const canvas = cropper.getCroppedCanvas({ maxWidth: 1000, maxHeight: 1000 });
         const croppedBase64 = canvas.toDataURL('image/jpeg');
         localStorage.setItem('firmaSalvataBase64', croppedBase64);
-        
         chiudiRitaglio();
         mostraFirmaSalvata();
     }
@@ -319,7 +307,7 @@
     function chiudiRitaglio() {
         document.getElementById('modalRitaglio').style.display = 'none';
         if (cropper) { cropper.destroy(); cropper = null; }
-        document.getElementById('firmaImg').value = ""; // Resetta l'input fisico perché ora usiamo il base64
+        document.getElementById('firmaImg').value = ""; 
     }
 
     function mostraFirmaSalvata() {
@@ -328,7 +316,7 @@
             document.getElementById('firmaPreviewContainer').classList.remove('hidden');
             document.getElementById('firmaPreview').src = salvata;
             document.getElementById('firmaImg').removeAttribute('required');
-            document.getElementById('firmaImg').classList.add('hidden'); // Nascondiamo il bottone "Scegli file" se c'è già
+            document.getElementById('firmaImg').classList.add('hidden');
             document.getElementById('firmaLabelTxt').classList.add('hidden');
         } else {
             document.getElementById('firmaPreviewContainer').classList.add('hidden');
@@ -345,7 +333,6 @@
         mostraFirmaSalvata();
     }
 
-    // --- LOGICA PASSWORD ---
     function richiediPasswordCalibrazione() {
         Swal.fire({
             title: '<div class="login-popup-title">Accesso Riservato</div>',
@@ -376,7 +363,6 @@
         });
     }
 
-    // --- MODAL CALIBRAZIONE E SALVATAGGIO ---
     function apriCalibrazione() { 
         document.getElementById('calibScaleFirma').value = currentScaleFirma;
         document.getElementById('modalCalibrazione').style.display = 'block'; 
@@ -465,7 +451,6 @@
         });
     }
 
-    // --- LOGICA FORM E DOM ---
     function lockFields(lock) {
         campiLocali.forEach(id => {
             const el = document.getElementById(id);
@@ -504,9 +489,7 @@
         else { dInput.value = ""; dInput.removeAttribute('readonly'); }
     }
 
-    // --- GENERAZIONE PDF ---
     async function generaPDF(isTest = false) {
-        // Usa solo il base64 salvato, dato che l'input fisico viene svuotato post-ritaglio
         const salvataBase64 = localStorage.getItem('firmaSalvataBase64');
 
         if (!isTest) {
@@ -603,7 +586,6 @@
             if (isTest || lavVal === 'disoccupato') { drawCross('cx_disocc'); }
 
             if (salvataBase64) {
-                // Inserisce il ritaglio salvato convertendolo dal base64
                 const isJpeg = salvataBase64.startsWith('data:image/jpeg');
                 const base64Data = salvataBase64.split(',')[1];
                 const binaryStr = window.atob(base64Data);
