@@ -10,7 +10,6 @@
         :root { --primary-color: #d32f2f; --secondary-color: #1976d2; --bg-color: #f4f6f8; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); padding: 20px; color: #333; }
         .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         input[type="text"], input[type="email"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
@@ -39,8 +38,13 @@
 <body>
 
 <div class="container">
-    <h1>GENERAZIONE DSA</h1>
+    <!-- NUOVA INTESTAZIONE GRAFICA -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <img src="banner_cri.png" alt="Banner CRI" style="max-width: 100%; height: auto;">
+        <h2 style="color: var(--primary-color); margin-top: 15px; margin-bottom: 5px;">GENERAZIONE DSA</h2>
+    </div>
 
+    <!-- DATI ANAGRAFICI -->
     <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
     <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
     <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
@@ -105,13 +109,12 @@
 
     <div class="section-title">Posizione Lavorativa</div>
     <div class="form-group radio-list">
-        <label><input type="radio" name="lavoro" value="consenso" onchange="checkLavoro()" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
-        <input type="text" id="dettaglioLavoro" class="hidden" placeholder="Specificare Ente/Datore">
-        <label><input type="radio" name="lavoro" value="libero_obblighi" onchange="checkLavoro()"> LIBERO DA OBBLIGHI LAVORATIVI</label>
-        <label><input type="radio" name="lavoro" value="libero_prof" onchange="checkLavoro()"> LIBERO PROFESSIONISTA</label>
-        <label><input type="radio" name="lavoro" value="pensionato" onchange="checkLavoro()"> PENSIONATO</label>
-        <label><input type="radio" name="lavoro" value="studente" onchange="checkLavoro()"> STUDENTE</label>
-        <label><input type="radio" name="lavoro" value="disoccupato" onchange="checkLavoro()"> DISOCCUPATO</label>
+        <label><input type="radio" name="lavoro" value="consenso" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
+        <label><input type="radio" name="lavoro" value="libero_obblighi"> LIBERO DA OBBLIGHI LAVORATIVI</label>
+        <label><input type="radio" name="lavoro" value="libero_prof"> LIBERO PROFESSIONISTA</label>
+        <label><input type="radio" name="lavoro" value="pensionato"> PENSIONATO</label>
+        <label><input type="radio" name="lavoro" value="studente"> STUDENTE</label>
+        <label><input type="radio" name="lavoro" value="disoccupato"> DISOCCUPATO</label>
     </div>
 
     <div class="section-title">Firma e Data Odierna</div>
@@ -131,8 +134,6 @@
 
     <br>
     <button class="btn" onclick="generaPDF(false)">Crea DSA (Invio Mail)</button>
-    
-    <!-- QUANDO HAI FATTO, PUOI CANCELLARE LA RIGA QUI SOTTO PER FAR SPARIRE IL TASTO CALIBRAZIONE -->
     <button class="btn btn-settings" onclick="apriCalibrazione()">⚙️ Regola Posizioni di Stampa (Calibrazione)</button>
 </div>
 
@@ -142,17 +143,14 @@
         <div class="calib-header">
             <h2 style="margin:0;">Calibrazione Coordinate (X, Y)</h2>
             <div>
-                <!-- NUOVO TASTO PER ESPORTARE IL CODICE -->
                 <button style="padding:10px; background:#ff9800; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:5px;" onclick="esportaCoordinateCodice()">📄 Copia per GitHub</button>
                 <button style="padding:10px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="chiudiCalibrazione()">Chiudi</button>
             </div>
         </div>
-        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato. Quando hai trovato i numeri giusti, clicca "Copia per GitHub".</p>
+        <p style="color:#666;">Modifica le coordinate. Clicca <strong>"Genera PDF di Prova con Griglia"</strong> per scaricare un test visivo immediato.</p>
         <button style="width:100%; padding:15px; margin-bottom:20px; background:#2196F3; color:white; border:none; font-size:16px; font-weight:bold; cursor:pointer; border-radius:5px;" onclick="generaPDF(true)">🖨️ Genera PDF di Prova con Griglia</button>
         
-        <div class="grid-2" id="calibContainer">
-            <!-- Riempito da JavaScript -->
-        </div>
+        <div class="grid-2" id="calibContainer"></div>
         <div style="margin-top:20px; text-align:center;">
             <button style="padding:10px; background:#999; color:white; border:none; border-radius:5px; cursor:pointer;" onclick="resetCalibrazione()">🔄 Ripristina Valori Iniziali</button>
         </div>
@@ -163,7 +161,7 @@
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
-    // SETUP COORDINATE DI FABBRICA - SOSTITUISCI QUESTO BLOCCO CON QUELLO CHE COPIERAI
+    // SETUP COORDINATE AGGIORNATO CON CAMPI TESTO CORSI E RIMOZIONE ENTE/DATORE
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 140, y: 725 },
         natoA: { name: "Nato a", x: 120, y: 705 },
@@ -188,10 +186,10 @@
         tx_logistico: { name: "[Testo] Logistico", x: 200, y: 395 },
         cx_nomina: { name: "[X] 1a Nomina", x: 325, y: 445 },
         cx_corsi: { name: "[X] Corsi", x: 325, y: 420 },
+        tx_corsi: { name: "[Testo] Corsi", x: 350, y: 360 }, 
         cx_altro: { name: "[X] Altro", x: 325, y: 395 },
         tx_altro: { name: "[Testo] Altro", x: 380, y: 395 },
         cx_consenso: { name: "[X] Consenso Ente", x: 65, y: 280 },
-        tx_consenso: { name: "[Testo] Ente/Datore", x: 100, y: 240 },
         cx_libero: { name: "[X] Libero Obblighi", x: 325, y: 280 },
         cx_prof: { name: "[X] Libero Prof.", x: 325, y: 258 },
         cx_pens: { name: "[X] Pensionato", x: 325, y: 237 },
@@ -200,7 +198,7 @@
     };
 
     let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
-    if (!currentCoords || !currentCoords.civico) {
+    if (!currentCoords || !currentCoords.tx_corsi || currentCoords.tx_consenso) {
         currentCoords = JSON.parse(JSON.stringify(coordDef)); 
     }
 
@@ -236,16 +234,8 @@
     function checkServizio() {
         const val = document.getElementById('tipoServizio').value;
         const div = document.getElementById('dettaglioServizioDiv');
-        if (['concorso', 'poligoni', 'logistico', 'altro'].includes(val)) div.classList.remove('hidden');
+        if (['concorso', 'poligoni', 'logistico', 'corsi', 'altro'].includes(val)) div.classList.remove('hidden');
         else { div.classList.add('hidden'); document.getElementById('dettaglioServizio').value = ""; }
-    }
-
-    function checkLavoro() {
-        const rad = document.querySelector('input[name="lavoro"]:checked');
-        if(!rad) return;
-        const inp = document.getElementById('dettaglioLavoro');
-        if (rad.value === 'consenso') inp.classList.remove('hidden');
-        else { inp.classList.add('hidden'); inp.value = ""; }
     }
 
     function toggleDataOggi() {
@@ -290,7 +280,6 @@
         });
     }
 
-    // NUOVA FUNZIONE: ESPORTA IL CODICE PER GITHUB
     function esportaCoordinateCodice() {
         aggiornaDagliInput();
         let codeStr = "    const coordDef = {\n";
@@ -376,7 +365,6 @@
             };
 
             const formatDataPDF = (d) => d ? d.split('-').reverse().join('/') : '';
-            
             const getVal = (id, dummy) => isTest ? (document.getElementById(id).value || dummy) : document.getElementById(id).value;
             
             const vSottoscritto = getVal('sottoscritto', 'MARIO ROSSI');
@@ -416,14 +404,13 @@
             if (isTest || ts === 'poligoni') { drawCross('cx_poligoni'); drawText(det, 'tx_poligoni'); }
             if (isTest || ts === 'logistico') { drawCross('cx_logistico'); drawText(det, 'tx_logistico'); }
             if (isTest || ts === 'nomina') { drawCross('cx_nomina'); }
-            if (isTest || ts === 'corsi') { drawCross('cx_corsi'); }
+            if (isTest || ts === 'corsi') { drawCross('cx_corsi'); drawText(det, 'tx_corsi'); }
             if (isTest || ts === 'altro') { drawCross('cx_altro'); drawText(det, 'tx_altro'); }
 
             const lav = document.querySelector('input[name="lavoro"]:checked');
             const lavVal = lav ? lav.value : null;
-            const detLav = getVal('dettaglioLavoro', 'Azienda Test SRL');
 
-            if (isTest || lavVal === 'consenso') { drawCross('cx_consenso'); drawText(detLav, 'tx_consenso'); }
+            if (isTest || lavVal === 'consenso') { drawCross('cx_consenso'); }
             if (isTest || lavVal === 'libero_obblighi') { drawCross('cx_libero'); }
             if (isTest || lavVal === 'libero_prof') { drawCross('cx_prof'); }
             if (isTest || lavVal === 'pensionato') { drawCross('cx_pens'); }
@@ -434,10 +421,11 @@
             if (firmaFile) {
                 const firmaArrayBuffer = await firmaFile.arrayBuffer();
                 let pdfImage = firmaFile.type === 'image/jpeg' ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
-                const dims = pdfImage.scale(0.2); 
+                // Scala della firma ingrandita al 30%
+                const dims = pdfImage.scale(0.3); 
                 firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
             } else if (isTest) {
-                firstPage.drawText('[QUI ANDRA LA FIRMA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
+                firstPage.drawText('[QUI ANDRA LA FIRMA INGRANDITA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
             }
 
             const pdfBytes = await pdfDoc.save();
