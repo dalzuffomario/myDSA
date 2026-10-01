@@ -267,6 +267,10 @@
         mostraFirmaSalvata();
         if (hasData) { lockFields(true); document.getElementById('editData').checked = false; }
         generaCampiCalibrazione();
+        
+        // Svela i campi a comparsa se il browser li ha ricordati dopo un F5
+        checkServizio();
+        checkLavoro();
     };
 
     function avviaRitaglio(event) {
@@ -283,8 +287,8 @@
                 viewMode: 1,
                 autoCropArea: 0.8,
                 background: false,
-                zoomable: true,       // Permette di zoomare la foto
-                cropBoxResizable: true, // Permette di allargare/stringere il riquadro
+                zoomable: true,
+                cropBoxResizable: true,
                 dragMode: 'move'
             });
         }
@@ -479,8 +483,23 @@
     function checkServizio() {
         const val = document.getElementById('tipoServizio').value;
         const div = document.getElementById('dettaglioServizioDiv');
-        if (['concorso', 'poligoni', 'logistico', 'corsi', 'altro'].includes(val)) div.classList.remove('hidden');
-        else { div.classList.add('hidden'); document.getElementById('dettaglioServizio').value = ""; }
+        if (['concorso', 'poligoni', 'logistico', 'corsi', 'altro'].includes(val)) {
+            div.classList.remove('hidden');
+        } else {
+            div.classList.add('hidden'); 
+            document.getElementById('dettaglioServizio').value = ""; 
+        }
+    }
+    
+    function checkLavoro() {
+        const rad = document.querySelector('input[name="lavoro"]:checked');
+        if(!rad) return;
+        const inp = document.getElementById('dettaglioLavoro');
+        if (rad.value === 'consenso') {
+            if(inp) inp.classList.remove('hidden');
+        } else {
+            if(inp) { inp.classList.add('hidden'); inp.value = ""; }
+        }
     }
 
     function toggleDataOggi() {
@@ -595,8 +614,7 @@
                 
                 let pdfImage = isJpeg ? await pdfDoc.embedJpg(bytes.buffer) : await pdfDoc.embedPng(bytes.buffer);
                 
-                // BOX A GRANDEZZA FISSA PER EVITARE SOVRAPPOSIZIONI
-                const MAX_HEIGHT = 55; // Altezza massima invalicabile (non toccherà mai Y:77)
+                const MAX_HEIGHT = 55;
                 const MAX_WIDTH = currentLarghezzaFirma;
 
                 const scaleFactor = Math.min(MAX_WIDTH / pdfImage.width, MAX_HEIGHT / pdfImage.height);
