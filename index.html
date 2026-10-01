@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GENERAZIONE DSA</title>
+    <!-- Librerie PDF e Alert -->
     <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Librerie per il Ritaglio (Cropper.js) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <style>
         :root { --primary-color: #d32f2f; --secondary-color: #1976d2; --bg-color: #f4f6f8; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); padding: 20px; color: #333; }
@@ -36,9 +41,30 @@
         
         .login-popup-title { font-size: 24px; color: #333; margin-bottom: 15px; }
         .swal2-input-custom { width: 80% !important; margin: 10px auto !important; padding: 12px !important; }
+
+        /* Stili per il modale di ritaglio */
+        #modalRitaglio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100000; flex-direction: column; align-items: center; justify-content: center; }
+        .crop-container { width: 100%; max-width: 600px; height: 60vh; background: #333; margin-bottom: 20px; }
+        .crop-buttons { display: flex; gap: 15px; }
+        .btn-crop { padding: 12px 25px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-crop-confirm { background: #4CAF50; color: white; }
+        .btn-crop-cancel { background: #f44336; color: white; }
     </style>
 </head>
 <body>
+
+<!-- SCHERMATA RITAGLIO FIRMA -->
+<div id="modalRitaglio">
+    <h3 style="color: white; margin-bottom: 10px;">Ritaglia la tua firma</h3>
+    <p style="color: #ccc; font-size: 14px; margin-bottom: 20px; text-align: center; padding: 0 10px;">Usa le dita per spostare il riquadro ed escludere il tavolo o lo sfondo.</p>
+    <div class="crop-container">
+        <img id="imageToCrop" src="" style="display: block; max-width: 100%;">
+    </div>
+    <div class="crop-buttons">
+        <button class="btn-crop btn-crop-cancel" onclick="annullaRitaglio()">Annulla</button>
+        <button class="btn-crop btn-crop-confirm" onclick="confermaRitaglio()">Conferma Ritaglio</button>
+    </div>
+</div>
 
 <div class="container">
     <div style="text-align: center; margin-bottom: 20px;">
@@ -136,13 +162,15 @@
     <div class="form-group">
         <label>La tua Firma</label>
         <div id="firmaPreviewContainer" class="firma-preview-box hidden">
-            <p style="margin: 0 0 5px 0; font-size: 13px; color: green; font-weight: bold;">✅ Firma Salvata in Memoria</p>
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: green; font-weight: bold;">✅ Firma Ritagliata e Salvata in Memoria</p>
             <img id="firmaPreview" style="max-height: 80px; max-width: 100%;">
             <br>
-            <button type="button" onclick="rimuoviFirma()" style="margin-top: 10px; background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Rimuovi Firma</button>
+            <button type="button" onclick="rimuoviFirma()" style="margin-top: 10px; background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Sostituisci Firma</button>
         </div>
-        <label id="firmaLabelTxt">Carica Nuova Firma (Scatta foto o carica PNG/JPG)</label>
-        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" onchange="salvaFirmaInMemoria()" required>
+        
+        <!-- Cambiato onchange per avviare il ritaglio -->
+        <label id="firmaLabelTxt">Scatta una foto alla tua firma (ti faremo ritagliare il contorno)</label>
+        <input type="file" id="firmaImg" accept="image/*" capture="environment" onchange="avviaRitaglio(event)" required>
     </div>
 
     <br>
@@ -230,6 +258,9 @@
         localStorage.setItem('pdfCoords', JSON.stringify(currentCoords));
     }
 
+    // Variabile per il cropper
+    let cropper;
+
     window.onload = () => {
         let hasData = false;
         campiLocali.forEach(id => {
@@ -241,6 +272,80 @@
         generaCampiCalibrazione();
     };
 
+    // --- LOGICA RITAGLIO FIRMA (CROPPER.JS) ---
+    function avviaRitaglio(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('imageToCrop').src = e.target.result;
+            document.getElementById('modalRitaglio').style.display = 'flex';
+
+            if (cropper) { cropper.destroy(); }
+            cropper = new Cropper(document.getElementById('imageToCrop'), {
+                viewMode: 1,
+                autoCropArea: 0.8,
+                background: false,
+                zoomable: false, // Impedisce di zoomare troppo dal telefono disallineando il frame
+                dragMode: 'move'
+            });
+        }
+        reader.readAsDataURL(file);
+    }
+
+    function annullaRitaglio() {
+        chiudiRitaglio();
+        mostraFirmaSalvata();
+    }
+
+    function confermaRitaglio() {
+        if (!cropper) return;
+        
+        // Estrae il ritaglio limitando la grandezza per mantenere il PDF leggero
+        const canvas = cropper.getCroppedCanvas({
+            maxWidth: 1000,
+            maxHeight: 1000
+        });
+        
+        // Salva l'immagine ritagliata come base64 nel local storage
+        const croppedBase64 = canvas.toDataURL('image/jpeg');
+        localStorage.setItem('firmaSalvataBase64', croppedBase64);
+        
+        chiudiRitaglio();
+        mostraFirmaSalvata();
+    }
+
+    function chiudiRitaglio() {
+        document.getElementById('modalRitaglio').style.display = 'none';
+        if (cropper) { cropper.destroy(); cropper = null; }
+        document.getElementById('firmaImg').value = ""; // Resetta l'input fisico perché ora usiamo il base64
+    }
+
+    function mostraFirmaSalvata() {
+        const salvata = localStorage.getItem('firmaSalvataBase64');
+        if (salvata) {
+            document.getElementById('firmaPreviewContainer').classList.remove('hidden');
+            document.getElementById('firmaPreview').src = salvata;
+            document.getElementById('firmaImg').removeAttribute('required');
+            document.getElementById('firmaImg').classList.add('hidden'); // Nascondiamo il bottone "Scegli file" se c'è già
+            document.getElementById('firmaLabelTxt').classList.add('hidden');
+        } else {
+            document.getElementById('firmaPreviewContainer').classList.add('hidden');
+            document.getElementById('firmaPreview').src = "";
+            document.getElementById('firmaImg').setAttribute('required', 'true');
+            document.getElementById('firmaImg').classList.remove('hidden');
+            document.getElementById('firmaLabelTxt').classList.remove('hidden');
+        }
+    }
+
+    function rimuoviFirma() {
+        localStorage.removeItem('firmaSalvataBase64');
+        document.getElementById('firmaImg').value = ""; 
+        mostraFirmaSalvata();
+    }
+
+    // --- LOGICA PASSWORD ---
     function richiediPasswordCalibrazione() {
         Swal.fire({
             title: '<div class="login-popup-title">Accesso Riservato</div>',
@@ -271,6 +376,7 @@
         });
     }
 
+    // --- MODAL CALIBRAZIONE E SALVATAGGIO ---
     function apriCalibrazione() { 
         document.getElementById('calibScaleFirma').value = currentScaleFirma;
         document.getElementById('modalCalibrazione').style.display = 'block'; 
@@ -359,6 +465,7 @@
         });
     }
 
+    // --- LOGICA FORM E DOM ---
     function lockFields(lock) {
         campiLocali.forEach(id => {
             const el = document.getElementById(id);
@@ -383,39 +490,6 @@
         lockFields(true); document.getElementById('editData').checked = false;
     }
 
-    function salvaFirmaInMemoria() {
-        const file = document.getElementById('firmaImg').files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                localStorage.setItem('firmaSalvataBase64', e.target.result);
-                mostraFirmaSalvata();
-            }
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function mostraFirmaSalvata() {
-        const salvata = localStorage.getItem('firmaSalvataBase64');
-        if (salvata) {
-            document.getElementById('firmaPreviewContainer').classList.remove('hidden');
-            document.getElementById('firmaPreview').src = salvata;
-            document.getElementById('firmaImg').removeAttribute('required');
-            document.getElementById('firmaLabelTxt').innerText = "Sostituisci la firma salvata (Opzionale):";
-        } else {
-            document.getElementById('firmaPreviewContainer').classList.add('hidden');
-            document.getElementById('firmaPreview').src = "";
-            document.getElementById('firmaImg').setAttribute('required', 'true');
-            document.getElementById('firmaLabelTxt').innerText = "Carica Nuova Firma (Scatta foto o carica PNG/JPG)";
-        }
-    }
-
-    function rimuoviFirma() {
-        localStorage.removeItem('firmaSalvataBase64');
-        document.getElementById('firmaImg').value = ""; 
-        mostraFirmaSalvata();
-    }
-
     function checkServizio() {
         const val = document.getElementById('tipoServizio').value;
         const div = document.getElementById('dettaglioServizioDiv');
@@ -430,13 +504,14 @@
         else { dInput.value = ""; dInput.removeAttribute('readonly'); }
     }
 
+    // --- GENERAZIONE PDF ---
     async function generaPDF(isTest = false) {
-        const fileInput = document.getElementById('firmaImg').files[0];
+        // Usa solo il base64 salvato, dato che l'input fisico viene svuotato post-ritaglio
         const salvataBase64 = localStorage.getItem('firmaSalvataBase64');
 
         if (!isTest) {
-            if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || (!fileInput && !salvataBase64)) {
-                Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e assicurati di avere una firma.', 'error');
+            if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !salvataBase64) {
+                Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e assicurati di aver scattato e ritagliato la firma.', 'error');
                 return;
             }
             salvaDatiLocali();
@@ -527,28 +602,20 @@
             if (isTest || lavVal === 'studente') { drawCross('cx_stud'); }
             if (isTest || lavVal === 'disoccupato') { drawCross('cx_disocc'); }
 
-            let firmaArrayBuffer = null;
-            let isJpeg = false;
-
-            if (fileInput) {
-                firmaArrayBuffer = await fileInput.arrayBuffer();
-                isJpeg = fileInput.type === 'image/jpeg';
-            } else if (salvataBase64) {
-                isJpeg = salvataBase64.startsWith('data:image/jpeg');
+            if (salvataBase64) {
+                // Inserisce il ritaglio salvato convertendolo dal base64
+                const isJpeg = salvataBase64.startsWith('data:image/jpeg');
                 const base64Data = salvataBase64.split(',')[1];
                 const binaryStr = window.atob(base64Data);
                 const bytes = new Uint8Array(binaryStr.length);
                 for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-                firmaArrayBuffer = bytes.buffer;
-            }
-
-            if (firmaArrayBuffer) {
-                let pdfImage = isJpeg ? await pdfDoc.embedJpg(firmaArrayBuffer) : await pdfDoc.embedPng(firmaArrayBuffer);
+                
+                let pdfImage = isJpeg ? await pdfDoc.embedJpg(bytes.buffer) : await pdfDoc.embedPng(bytes.buffer);
                 const scaleFactor = currentScaleFirma / 100;
                 const dims = pdfImage.scale(scaleFactor); 
                 firstPage.drawImage(pdfImage, { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, width: dims.width, height: dims.height });
             } else if (isTest) {
-                firstPage.drawText('[FIRMA]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
+                firstPage.drawText('[FIRMA RITAGLIATA QUI]', { x: currentCoords.imgFirma.x, y: currentCoords.imgFirma.y, size: 10, color: PDFLib.rgb(1, 0, 0) });
             }
 
             const pdfBytes = await pdfDoc.save();
