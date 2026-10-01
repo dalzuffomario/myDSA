@@ -15,8 +15,6 @@
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         input[type="text"], input[type="email"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         .address-group { display: flex; gap: 10px; }
-        .address-group select { width: 30%; }
-        .address-group input { width: 70%; }
         .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 20px; background: #ffebee; padding: 10px; border-radius: 5px; border-left: 4px solid var(--primary-color);}
         .checkbox-oggi { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #e3f2fd; padding: 10px; border-radius: 5px; }
         .btn { background-color: var(--secondary-color); color: white; padding: 15px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; transition: 0.3s; }
@@ -52,9 +50,9 @@
     <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required></div>
     
     <div class="form-group">
-        <label>Indirizzo</label>
+        <label>Indirizzo e Civico</label>
         <div class="address-group">
-            <select id="tipoVia">
+            <select id="tipoVia" style="width: 25%;">
                 <option value="Via">Via</option>
                 <option value="Piazza">Piazza</option>
                 <option value="Viale">Viale</option>
@@ -63,10 +61,12 @@
                 <option value="Largo">Largo</option>
                 <option value="Strada">Strada</option>
             </select>
-            <input type="text" id="nomeVia" required>
+            <input type="text" id="nomeVia" style="width: 55%;" placeholder="Nome via" required>
+            <input type="text" id="civico" style="width: 20%;" placeholder="N°" required>
         </div>
     </div>
 
+    <div class="form-group"><label>Cellulare</label><input type="text" id="cellulare" required></div>
     <div class="form-group"><label>N.A.A.Pro di</label><input type="text" id="naapro" required></div>
     <div class="form-group"><label>Quota associativa per l'anno</label><input type="text" id="quota" required></div>
     <div class="form-group"><label>Comitato Locale di Croce Rossa</label><input type="text" id="comitato" required></div>
@@ -159,15 +159,17 @@
 
 <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
-    const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
+    const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'civico', 'cellulare', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
-    // SETUP COORDINATE PREDEFINITE (L'ultima configurazione nota)
+    // SETUP COORDINATE PREDEFINITE (Con Civico e Cellulare)
     const coordDef = {
         sottoscritto: { name: "Nome e Cognome", x: 140, y: 725 },
         natoA: { name: "Nato a", x: 120, y: 705 },
         dataNascita: { name: "Data Nascita", x: 360, y: 705 },
         residenteA: { name: "Residente a", x: 140, y: 685 },
-        via: { name: "Indirizzo (Via + Nome)", x: 330, y: 685 },
+        via: { name: "Via e Nome Via", x: 330, y: 685 },
+        civico: { name: "N° Civico", x: 480, y: 685 },
+        cellulare: { name: "Cellulare", x: 530, y: 685 },
         naapro: { name: "N.A.A.Pro", x: 440, y: 665 },
         quota: { name: "Quota (Anno)", x: 390, y: 625 },
         comitato: { name: "Comitato", x: 70, y: 605 },
@@ -199,9 +201,11 @@
         cx_disocc: { name: "[X] Disoccupato", x: 325, y: 195 }
     };
 
-    // Carica Coordinate da LocalStorage o usa Predefinite
     let currentCoords = JSON.parse(localStorage.getItem('pdfCoords'));
-    if (!currentCoords) currentCoords = JSON.parse(JSON.stringify(coordDef)); // Copia profonda
+    // Se non ci sono coordinate salvate O mancano le nuove voci (civico/cellulare), resetta tutto
+    if (!currentCoords || !currentCoords.civico) {
+        currentCoords = JSON.parse(JSON.stringify(coordDef)); 
+    }
 
     window.onload = () => {
         let hasData = false;
@@ -299,7 +303,7 @@
         }
     }
 
-    // --- GENERAZIONE PDF (isTest=true fa solo il download con la griglia, false manda la mail) ---
+    // --- GENERAZIONE PDF ---
     async function generaPDF(isTest = false) {
         if (!isTest) {
             if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !document.getElementById('firmaImg').files[0]) {
@@ -309,7 +313,6 @@
             salvaDatiLocali();
         }
 
-        // Se siamo in modalità test, aggiorno le variabili correnti dal form della calibrazione prima di generare
         if (isTest) {
             Object.keys(currentCoords).forEach(key => {
                 currentCoords[key].x = parseInt(document.getElementById(`calib_x_${key}`).value) || 0;
@@ -325,7 +328,6 @@
             const pages = pdfDoc.getPages();
             const firstPage = pages[0];
 
-            // Disegna griglia se è un test
             if (isTest) {
                 for (let i = 0; i < 850; i += 10) {
                     let isMajor = i % 50 === 0;
@@ -350,14 +352,15 @@
 
             const formatDataPDF = (d) => d ? d.split('-').reverse().join('/') : '';
             
-            // Dati (Reali o Dummy se test)
             const getVal = (id, dummy) => isTest ? (document.getElementById(id).value || dummy) : document.getElementById(id).value;
             
             const vSottoscritto = getVal('sottoscritto', 'MARIO ROSSI');
             const vNatoA = getVal('natoA', 'ROMA');
             const vDataNascita = isTest ? (document.getElementById('dataNascita').value ? formatDataPDF(document.getElementById('dataNascita').value) : '01/01/1990') : formatDataPDF(document.getElementById('dataNascita').value);
             const vResidenteA = getVal('residenteA', 'MILANO');
-            const vIndirizzo = isTest ? 'Via Test 123' : (document.getElementById('tipoVia').value + ' ' + document.getElementById('nomeVia').value);
+            const vIndirizzo = isTest ? 'Via Test' : (document.getElementById('tipoVia').value + ' ' + document.getElementById('nomeVia').value);
+            const vCivico = getVal('civico', '12/A');
+            const vCellulare = getVal('cellulare', '3330000000');
             const vNaapro = getVal('naapro', 'PADOVA');
             const vQuota = getVal('quota', '2026');
             const vComitato = getVal('comitato', 'VENEZIA');
@@ -366,12 +369,13 @@
             const vLuogo = getVal('luogoFirma', 'MILANO');
             const vDataF = isTest ? (document.getElementById('dataFirma').value ? formatDataPDF(document.getElementById('dataFirma').value) : '01/10/2026') : formatDataPDF(document.getElementById('dataFirma').value);
 
-            // Stampa Anagrafica
             drawText(vSottoscritto, 'sottoscritto');
             drawText(vNatoA, 'natoA');
             drawText(vDataNascita, 'dataNascita');
             drawText(vResidenteA, 'residenteA');
             drawText(vIndirizzo, 'via');
+            drawText(vCivico, 'civico');
+            drawText(vCellulare, 'cellulare');
             drawText(vNaapro, 'naapro');
             drawText(vQuota, 'quota');
             drawText(vComitato, 'comitato');
@@ -380,7 +384,6 @@
             drawText(vLuogo, 'luogoFirma');
             drawText(vDataF, 'dataFirma');
 
-            // Stampa Servizio (In test stampiamo tutte le crocette per vedere l'allineamento)
             const ts = document.getElementById('tipoServizio').value;
             const det = getVal('dettaglioServizio', 'Testo di Prova');
             
@@ -391,7 +394,6 @@
             if (isTest || ts === 'corsi') { drawCross('cx_corsi'); }
             if (isTest || ts === 'altro') { drawCross('cx_altro'); drawText(det, 'tx_altro'); }
 
-            // Stampa Lavoro
             const lav = document.querySelector('input[name="lavoro"]:checked');
             const lavVal = lav ? lav.value : null;
             const detLav = getVal('dettaglioLavoro', 'Azienda Test SRL');
@@ -403,7 +405,6 @@
             if (isTest || lavVal === 'studente') { drawCross('cx_stud'); }
             if (isTest || lavVal === 'disoccupato') { drawCross('cx_disocc'); }
 
-            // Firma Immagine (Se non c'è nel test, non disegna nulla)
             const firmaFile = document.getElementById('firmaImg').files[0];
             if (firmaFile) {
                 const firmaArrayBuffer = await firmaFile.arrayBuffer();
@@ -416,7 +417,6 @@
 
             const pdfBytes = await pdfDoc.save();
             
-            // SE E' UN TEST: SCARICA E BASTA
             if (isTest) {
                 Swal.close();
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -427,7 +427,6 @@
                 return;
             }
 
-            // SE NON E' TEST: PROCEDURA STANDARD INVIO MAIL
             const base64Data = arrayBufferToBase64(pdfBytes);
             Swal.close();
 
