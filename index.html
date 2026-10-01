@@ -32,7 +32,6 @@
 <div class="container">
     <h1>GENERAZIONE DSA</h1>
 
-    <!-- DATI ANAGRAFICI -->
     <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
     <div class="form-group"><label>Grado</label><input type="text" id="grado" required></div>
     <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required></div>
@@ -52,7 +51,7 @@
                 <option value="Largo">Largo</option>
                 <option value="Strada">Strada</option>
             </select>
-            <input type="text" id="nomeVia" placeholder="Es. Roma 12" required>
+            <input type="text" id="nomeVia" required>
         </div>
     </div>
 
@@ -62,13 +61,11 @@
     <div class="form-group"><label>Indirizzo Email Personale</label><input type="email" id="email" required></div>
     <div class="form-group"><label>Lì</label><input type="text" id="luogoFirma" required></div>
 
-    <!-- SPUNTA SBLOCCO DATI -->
     <div class="checkbox-group">
         <input type="checkbox" id="editData" onchange="toggleEdit()">
         <label for="editData" style="margin:0; font-weight: bold; color: var(--primary-color);">Modifica dati anagrafici salvati</label>
     </div>
 
-    <!-- DATI SERVIZIO -->
     <div class="section-title">Dettagli Servizio</div>
     <div class="form-group">
         <label>Tipo di Servizio (Art. 1656)</label>
@@ -95,7 +92,6 @@
         </div>
     </div>
 
-    <!-- POSIZIONE LAVORATIVA -->
     <div class="section-title">Posizione Lavorativa</div>
     <div class="form-group radio-list">
         <label><input type="radio" name="lavoro" value="consenso" onchange="checkLavoro()" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
@@ -107,7 +103,6 @@
         <label><input type="radio" name="lavoro" value="disoccupato" onchange="checkLavoro()"> DISOCCUPATO</label>
     </div>
 
-    <!-- FIRMA -->
     <div class="section-title">Firma e Data Odierna</div>
     <div class="checkbox-oggi">
         <input type="checkbox" id="dataOggiCheck" onchange="toggleDataOggi()">
@@ -130,10 +125,8 @@
 <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH7ULkDokl2e9yxrVepfRn9xIhQm2o0d8SZf8Dnk7K16sQjUXBwiKC-FFONOcE8ribHw/exec"; 
 
-    // Aggiunti i campi per l'indirizzo separato
     const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'tipoVia', 'nomeVia', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
 
-    // Logica di Lock/Unlock automatica al caricamento
     window.onload = () => {
         let hasData = false;
         campiLocali.forEach(id => {
@@ -143,8 +136,6 @@
                 hasData = true;
             }
         });
-
-        // Se c'erano dati salvati, blocco i campi
         if (hasData) {
             lockFields(true);
             document.getElementById('editData').checked = false;
@@ -166,14 +157,14 @@
 
     function toggleEdit() {
         const canEdit = document.getElementById('editData').checked;
-        lockFields(!canEdit); // Se spuntato (canEdit=true), sblocco (lock=false)
+        lockFields(!canEdit); 
     }
 
     function salvaDatiLocali() {
         campiLocali.forEach(id => {
             localStorage.setItem(id, document.getElementById(id).value);
         });
-        lockFields(true); // Dopo aver salvato, blocco i campi
+        lockFields(true); 
         document.getElementById('editData').checked = false;
     }
 
@@ -217,18 +208,8 @@
             Swal.fire('Errore', 'Compila tutti i campi obbligatori anagrafici e carica la firma.', 'error');
             return;
         }
-        if (!document.getElementById('tipoServizio').value) {
-            Swal.fire('Errore', 'Seleziona un Tipo di Servizio.', 'error');
-            return;
-        }
-        if (!document.querySelector('input[name="lavoro"]:checked')) {
-            Swal.fire('Errore', 'Seleziona una Posizione Lavorativa.', 'error');
-            return;
-        }
 
-        // Salvo e blocco i dati prima di procedere
         salvaDatiLocali();
-
         Swal.fire({ title: 'Generazione in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
         try {
@@ -237,7 +218,25 @@
             const pages = pdfDoc.getPages();
             const firstPage = pages[0];
 
-            // RICALIBRATURA COORDINATE BASATA SUL PDF ALLEGATO (0,0 in basso a sinistra)
+            // ---------------------------------------------------------
+            // INIZIO TRUCCO GRIGLIA: Disegna una griglia per trovare le coordinate esatte.
+            // Quando non ti servirà più, cancella questo blocco.
+            // ---------------------------------------------------------
+            for (let i = 0; i < 850; i += 10) {
+                let isMajor = i % 50 === 0;
+                firstPage.drawLine({ start: { x: 0, y: i }, end: { x: 600, y: i }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+                if (isMajor) firstPage.drawText('Y:' + i, { x: 5, y: i + 2, size: 10, color: PDFLib.rgb(0.8, 0.2, 0.2) });
+            }
+            for (let i = 0; i < 600; i += 10) {
+                let isMajor = i % 50 === 0;
+                firstPage.drawLine({ start: { x: i, y: 0 }, end: { x: i, y: 850 }, thickness: isMajor ? 1 : 0.3, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+                if (isMajor) firstPage.drawText('X:' + i, { x: i + 2, y: 5, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.8) });
+            }
+            // ---------------------------------------------------------
+            // FINE TRUCCO GRIGLIA
+            // ---------------------------------------------------------
+
+            // QUI SOTTO POTRAI INSERIRE I NUMERI ESATTI LETTI DALLA GRIGLIA
             const coords = {
                 sottoscritto: { x: 150, y: 685 }, 
                 natoA: { x: 120, y: 665 },
@@ -262,11 +261,8 @@
             };
             
             const formatDataPDF = (d) => d ? d.split('-').reverse().join('/') : '';
-
-            // Composizione indirizzo
             const indirizzoCompleto = document.getElementById('tipoVia').value + ' ' + document.getElementById('nomeVia').value;
 
-            // Scrittura Testi PDF
             drawText(document.getElementById('sottoscritto').value, coords.sottoscritto);
             drawText(document.getElementById('natoA').value, coords.natoA);
             drawText(formatDataPDF(document.getElementById('dataNascita').value), coords.dataNascita);
@@ -281,7 +277,6 @@
             drawText(document.getElementById('luogoFirma').value, coords.luogo);
             drawText(formatDataPDF(document.getElementById('dataFirma').value), coords.dataFirma);
 
-            // Tipo Servizio (Mappatura crocette ricalibrata)
             const ts = document.getElementById('tipoServizio').value;
             const det = document.getElementById('dettaglioServizio').value;
             
@@ -290,18 +285,19 @@
             else if (ts === 'logistico') { drawCross(60, 400); drawText(det, { x: 200, y: 400 }); }
             else if (ts === 'nomina') { drawCross(320, 440); }
             else if (ts === 'corsi') { drawCross(320, 420); }
-            else if (ts === 'altro') { drawCross(320, 405); drawText(det, { x: 380, y: 405 }); } // Aggiustato Y Altro
+            else if (ts === 'altro') { drawCross(320, 405); drawText(det, { x: 380, y: 405 }); }
 
-            // Lavoro
-            const lav = document.querySelector('input[name="lavoro"]:checked').value;
-            if (lav === 'consenso') { drawCross(60, 210); drawText(document.getElementById('dettaglioLavoro').value, { x: 150, y: 190 }); }
-            else if (lav === 'libero_obblighi') drawCross(320, 230);
-            else if (lav === 'libero_prof') drawCross(320, 210);
-            else if (lav === 'pensionato') drawCross(320, 190);
-            else if (lav === 'studente') drawCross(320, 170);
-            else if (lav === 'disoccupato') drawCross(320, 150);
+            const lav = document.querySelector('input[name="lavoro"]:checked');
+            if(lav) {
+                const lavVal = lav.value;
+                if (lavVal === 'consenso') { drawCross(60, 210); drawText(document.getElementById('dettaglioLavoro').value, { x: 150, y: 190 }); }
+                else if (lavVal === 'libero_obblighi') drawCross(320, 230);
+                else if (lavVal === 'libero_prof') drawCross(320, 210);
+                else if (lavVal === 'pensionato') drawCross(320, 190);
+                else if (lavVal === 'studente') drawCross(320, 170);
+                else if (lavVal === 'disoccupato') drawCross(320, 150);
+            }
 
-            // Firma Immagine
             const firmaFile = document.getElementById('firmaImg').files[0];
             const firmaArrayBuffer = await firmaFile.arrayBuffer();
             let pdfImage;
@@ -313,7 +309,7 @@
             
             const dims = pdfImage.scale(0.2); 
             firstPage.drawImage(pdfImage, {
-                x: 350, // Spostata leggermente a sinistra rispetto a prima
+                x: 350, 
                 y: 50,  
                 width: dims.width,
                 height: dims.height,
@@ -334,12 +330,9 @@
                 confirmButtonText: 'Sì, inviala',
                 cancelButtonText: 'No, salva e basta'
             }).then((result) => {
-                let sendToUser = false;
-                if (result.isConfirmed) {
-                    sendToUser = true;
-                }
+                let sendToUser = result.isConfirmed;
                 
-                // NOME FILE E OGGETTO EMAIL (Grado Nome_Data - Data - Testo specificato)
+                // FORMATTAZIONE NOME CORRETTA CON /
                 const grado = document.getElementById('grado').value;
                 const nomeCognome = document.getElementById('sottoscritto').value;
                 const dDal = document.getElementById('dataDal').value;
@@ -355,8 +348,8 @@
                     testoOggetto = selectEl.options[selectEl.selectedIndex].text;
                 }
                 
-                // Formato esatto richiesto
-                const subj = `${grado} ${nomeCognome}_${dDalF} - ${dAlF} - ${testoOggetto}`;
+                // Genera la stringa esatta: "Sergente Mario Dal Zuffo - 04-10-2026 / 04-10-2026 - rappresentanza feltre"
+                const subj = `${grado} ${nomeCognome} - ${dDalF} / ${dAlF} - ${testoOggetto}`;
                 
                 inviaBackendScript(base64Data, document.getElementById('email').value, subj, subj, sendToUser);
             });
