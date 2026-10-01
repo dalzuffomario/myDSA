@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENERAZIONE DSA</title>
+    <!-- Inclusione librerie: pdf-lib per il PDF, SweetAlert2 per i popup grafici -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-color: #d32f2f; /* Rosso CRI */
+            --secondary-color: #1976d2; /* Blu Istituzionale */
+            --bg-color: #f4f6f8;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="email"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover { background-color: #115293; }
+        .section-title {
+            background: #eee;
+            padding: 10px;
+            border-left: 5px solid var(--primary-color);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .hidden { display: none; }
+        .radio-list label { font-weight: normal; display: block; margin-bottom: 5px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>GENERAZIONE DSA</h1>
+    
+    <div class="checkbox-group">
+        <input type="checkbox" id="editData" onchange="toggleEdit()">
+        <label for="editData" style="margin:0;">Modifica dati anagrafici salvati in locale</label>
+    </div>
+
+    <!-- DATI ANAGRAFICI -->
+    <div class="section-title">Dati Anagrafici (Salvati in locale)</div>
+    <div class="form-group"><label>Grado</label><input type="text" id="grado" required readonly></div>
+    <div class="form-group"><label>Nome e Cognome (Sottoscritto)</label><input type="text" id="sottoscritto" required readonly></div>
+    <div class="form-group"><label>Nato a</label><input type="text" id="natoA" required readonly></div>
+    <div class="form-group"><label>Il (Data di nascita)</label><input type="date" id="dataNascita" required readonly></div>
+    <div class="form-group"><label>Residente a</label><input type="text" id="residenteA" required readonly></div>
+    <div class="form-group"><label>In Via (Ometti piazza, vicolo, ecc.)</label><input type="text" id="via" required readonly></div>
+    <div class="form-group"><label>N.A.A.Pro di</label><input type="text" id="naapro" required readonly></div>
+    <div class="form-group"><label>Quota associativa per l'anno</label><input type="text" id="quota" required readonly></div>
+    <div class="form-group"><label>Comitato Locale di Croce Rossa</label><input type="text" id="comitato" required readonly></div>
+    <div class="form-group"><label>Indirizzo Email Personale</label><input type="email" id="email" required readonly></div>
+    <div class="form-group"><label>Luogo (Lì, ...)</label><input type="text" id="luogoFirma" required readonly></div>
+
+    <!-- DATI SERVIZIO -->
+    <div class="section-title">Dettagli Servizio</div>
+    <div class="form-group">
+        <label>Tipo di Servizio (Art. 1656)</label>
+        <select id="tipoServizio" onchange="checkServizio()" required>
+            <option value="">-- Seleziona --</option>
+            <option value="concorso">Concorso Sanitario D.O.B. a:</option>
+            <option value="poligoni">Assistenza Sa. Poligoni/Reggimenti a:</option>
+            <option value="logistico">Supporto Amm.vo/Logistico a:</option>
+            <option value="nomina">1ª Nomina Personale Direttivo presso CdM</option>
+            <option value="corsi">Corsi Formazione/Addestramento</option>
+            <option value="altro">Altro:</option>
+        </select>
+    </div>
+    <div class="form-group hidden" id="dettaglioServizioDiv">
+        <label>Specificare (Testo da compilare sulla riga)</label>
+        <input type="text" id="dettaglioServizio">
+    </div>
+
+    <div class="form-group">
+        <label>Periodo Richiamo</label>
+        <div style="display: flex; gap: 10px;">
+            <div style="width: 50%;"><label>Dal</label><input type="date" id="dataDal" required></div>
+            <div style="width: 50%;"><label>Al</label><input type="date" id="dataAl" required></div>
+        </div>
+    </div>
+
+    <div class="section-title">Posizione Lavorativa</div>
+    <div class="form-group radio-list">
+        <label><input type="radio" name="lavoro" value="consenso" onchange="checkLavoro()" required> DI AVER OTTENUTO IL CONSENSO... C.R.I.:</label>
+        <input type="text" id="dettaglioLavoro" class="hidden" placeholder="Specificare Ente/Datore">
+        <label><input type="radio" name="lavoro" value="libero_obblighi" onchange="checkLavoro()"> LIBERO DA OBBLIGHI LAVORATIVI</label>
+        <label><input type="radio" name="lavoro" value="libero_prof" onchange="checkLavoro()"> LIBERO PROFESSIONISTA</label>
+        <label><input type="radio" name="lavoro" value="pensionato" onchange="checkLavoro()"> PENSIONATO</label>
+        <label><input type="radio" name="lavoro" value="studente" onchange="checkLavoro()"> STUDENTE</label>
+        <label><input type="radio" name="lavoro" value="disoccupato" onchange="checkLavoro()"> DISOCCUPATO</label>
+    </div>
+
+    <div class="section-title">Firma e Data Odierna</div>
+    <div class="checkbox-group">
+        <input type="checkbox" id="dataOggiCheck" onchange="toggleDataOggi()">
+        <label for="dataOggiCheck" style="margin:0;">Inserisci data di oggi automaticamente</label>
+    </div>
+    <div class="form-group">
+        <label>Data Firma</label>
+        <input type="date" id="dataFirma">
+    </div>
+
+    <div class="form-group">
+        <label>Carica Firma (Scatta foto o carica immagine PNG/JPG)</label>
+        <input type="file" id="firmaImg" accept="image/png, image/jpeg" capture="environment" required>
+    </div>
+
+    <br>
+    <button class="btn" onclick="generaPDF()">Crea DSA</button>
+</div>
+
+<script>
+    // URL DEL TUO APP SCRIPT (Sostituisci dopo il deploy di code.gs)
+    const APPS_SCRIPT_URL = "INSERISCI_QUI_URL_APP_SCRIPT"; 
+
+    const campiLocali = ['grado', 'sottoscritto', 'natoA', 'dataNascita', 'residenteA', 'via', 'naapro', 'quota', 'comitato', 'email', 'luogoFirma'];
+
+    // Caricamento dati locali al lancio
+    window.onload = () => {
+        campiLocali.forEach(id => {
+            const val = localStorage.getItem(id);
+            if (val) document.getElementById(id).value = val;
+        });
+    };
+
+    function toggleEdit() {
+        const canEdit = document.getElementById('editData').checked;
+        campiLocali.forEach(id => {
+            const el = document.getElementById(id);
+            if (canEdit) el.removeAttribute('readonly');
+            else {
+                el.setAttribute('readonly', true);
+                localStorage.setItem(id, el.value); // Salva le modifiche quando togli la spunta
+            }
+        });
+    }
+
+    function checkServizio() {
+        const val = document.getElementById('tipoServizio').value;
+        const div = document.getElementById('dettaglioServizioDiv');
+        // Mostra il campo di testo per quelli che hanno la linea da compilare
+        if (['concorso', 'poligoni', 'logistico', 'altro'].includes(val)) {
+            div.classList.remove('hidden');
+        } else {
+            div.classList.add('hidden');
+            document.getElementById('dettaglioServizio').value = "";
+        }
+    }
+
+    function checkLavoro() {
+        const val = document.querySelector('input[name="lavoro"]:checked').value;
+        const inputDettaglio = document.getElementById('dettaglioLavoro');
+        if (val === 'consenso') inputDettaglio.classList.remove('hidden');
+        else {
+            inputDettaglio.classList.add('hidden');
+            inputDettaglio.value = "";
+        }
+    }
+
+    function toggleDataOggi() {
+        const isChecked = document.getElementById('dataOggiCheck').checked;
+        const dateInput = document.getElementById('dataFirma');
+        if (isChecked) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('readonly', true);
+        } else {
+            dateInput.value = "";
+            dateInput.removeAttribute('readonly');
+        }
+    }
+
+    // Pulizia dell'indirizzo come richiesto
+    function pulisciVia(viaStr) {
+        const regex = /^(piazza|vicolo|viale|corso|largo|strada|piazzale|vico)\s+/i;
+        return viaStr.replace(regex, '');
+    }
+
+    // Funzione principale di Generazione
+    async function generaPDF() {
+        // 1. Validazione base
+        if (!document.getElementById('sottoscritto').value || !document.getElementById('email').value || !document.getElementById('firmaImg').files[0]) {
+            Swal.fire('Errore', 'Compila tutti i campi obbligatori e carica la firma.', 'error');
+            return;
+        }
+
+        // Assicurati che i dati siano salvati se l'utente ha dimenticato di togliere la spunta
+        if (document.getElementById('editData').checked) toggleEdit();
+
+        Swal.fire({ title: 'Generazione in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+        try {
+            // Recupero il PDF vergine caricato su GitHub Pages
+            const existingPdfBytes = await fetch('Nuovo DSA_PDF.pdf').then(res => res.arrayBuffer());
+            const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
+
+            // CONFIGURAZIONE COORDINATE (X, Y)
+            // Attenzione: su pdf-lib l'origine (0,0) è in basso a sinistra!
+            // I valori qui sotto andranno testati e ritoccati di qualche punto per centrarli perfettamente.
+            const coords = {
+                sottoscritto: { x: 150, y: 700 },
+                natoA: { x: 100, y: 680 },
+                dataNascita: { x: 300, y: 680 },
+                residenteA: { x: 120, y: 660 },
+                via: { x: 350, y: 660 },
+                naapro: { x: 400, y: 640 },
+                quota: { x: 350, y: 550 },
+                comitato: { x: 200, y: 530 },
+                dataDal: { x: 100, y: 220 },
+                dataAl: { x: 250, y: 220 },
+                luogo: { x: 100, y: 100 },
+                dataFirma: { x: 200, y: 100 }
+            };
+
+            const drawText = (text, pos) => {
+                if (text) firstPage.drawText(text, { x: pos.x, y: pos.y, size: 10 });
+            };
+
+            const drawCross = (x, y) => {
+                firstPage.drawText('X', { x: x, y: y, size: 12 });
+            };
+
+            // Scrittura dei Testi
+            drawText(document.getElementById('sottoscritto').value, coords.sottoscritto);
+            drawText(document.getElementById('natoA').value, coords.natoA);
+            drawText(document.getElementById('dataNascita').value.split('-').reverse().join('/'), coords.dataNascita);
+            drawText(document.getElementById('residenteA').value, coords.residenteA);
+            drawText(pulisciVia(document.getElementById('via').value), coords.via);
+            drawText(document.getElementById('naapro').value, coords.naapro);
+            drawText(document.getElementById('quota').value, coords.quota);
+            drawText(document.getElementById('comitato').value, coords.comitato);
+            
+            drawText(document.getElementById('dataDal').value.split('-').reverse().join('/'), coords.dataDal);
+            drawText(document.getElementById('dataAl').value.split('-').reverse().join('/'), coords.dataAl);
+            drawText(document.getElementById('luogoFirma').value, coords.luogo);
+            drawText(document.getElementById('dataFirma').value.split('-').reverse().join('/'), coords.dataFirma);
+
+            // Logica Checkbox Tipo Servizio
+            const ts = document.getElementById('tipoServizio').value;
+            const det = document.getElementById('dettaglioServizio').value;
+            // DA CALIBRARE: le coordinate delle crocette (X) per la sezione Servizio
+            if (ts === 'concorso') { drawCross(60, 420); drawText(det, { x: 200, y: 420 }); }
+            else if (ts === 'poligoni') { drawCross(60, 400); drawText(det, { x: 200, y: 400 }); }
+            else if (ts === 'logistico') { drawCross(60, 380); drawText(det, { x: 200, y: 380 }); }
+            else if (ts === 'nomina') { drawCross(320, 420); }
+            else if (ts === 'corsi') { drawCross(320, 400); }
+            else if (ts === 'altro') { drawCross(320, 380); drawText(det, { x: 380, y: 380 }); }
+
+            // Logica Lavoro
+            const lav = document.querySelector('input[name="lavoro"]:checked').value;
+            // DA CALIBRARE: le coordinate delle crocette (X) per la sezione Lavoro
+            if (lav === 'consenso') { drawCross(60, 250); drawText(document.getElementById('dettaglioLavoro').value, { x: 150, y: 230 }); }
+            else if (lav === 'libero_obblighi') drawCross(320, 270);
+            else if (lav === 'libero_prof') drawCross(320, 250);
+            else if (lav === 'pensionato') drawCross(320, 230);
+            else if (lav === 'studente') drawCross(320, 210);
+            else if (lav === 'disoccupato') drawCross(320, 190);
+
+            // Inserimento Firma Immagine
+            const firmaFile = document.getElementById('firmaImg').files[0];
+            const firmaArrayBuffer = await firmaFile.arrayBuffer();
+            let pdfImage;
+            if (firmaFile.type === 'image/jpeg') {
+                pdfImage = await pdfDoc.embedJpg(firmaArrayBuffer);
+            } else {
+                pdfImage = await pdfDoc.embedPng(firmaArrayBuffer);
+            }
+            
+            // Ridimensionamento mantenendo le proporzioni
+            const dims = pdfImage.scale(0.2); // Scala al 20%, ritocca se la firma è troppo grande o piccola
+            // Coordinate centrate esattamente sotto la scritta In fede. Da calibrare:
+            firstPage.drawImage(pdfImage, {
+                x: 400, // posizione orizzontale In fede
+                y: 50,  // appena sopra il margine inferiore
+                width: dims.width,
+                height: dims.height,
+            });
+
+            // Salvataggio File
+            const pdfBytes = await pdfDoc.save();
+            const base64Data = arrayBufferToBase64(pdfBytes);
+
+            Swal.close();
+
+            // POPUP SI/NO per invio copia utente
+            Swal.fire({
+                title: 'PDF Generato con successo!',
+                text: "Vuoi mandare una copia della DSA al tuo indirizzo mail?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sì, inviala',
+                cancelButtonText: 'No, salva e basta'
+            }).then((result) => {
+                let sendToUser = false;
+                if (result.isConfirmed) {
+                    sendToUser = true;
+                }
+                
+                // Preparazione Oggetto Email
+                const grado = document.getElementById('grado').value;
+                const nomeCognome = document.getElementById('sottoscritto').value;
+                const dDal = document.getElementById('dataDal').value;
+                const dAl = document.getElementById('dataAl').value;
+                const subj = `DSA - ${grado} ${nomeCognome} - ${dDal}/${dAl} - ${ts}`;
+                
+                inviaBackendScript(base64Data, document.getElementById('email').value, subj, ts, sendToUser);
+            });
+
+        } catch (error) {
+            Swal.fire('Errore', 'Si è verificato un errore nella generazione del PDF: ' + error.message, 'error');
+        }
+    }
+
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    function inviaBackendScript(pdfBase64, userEmail, subject, filenamePrefix, sendToUser) {
+        Swal.fire({ title: 'Invio in corso...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+        const payload = {
+            pdfData: pdfBase64,
+            email: userEmail,
+            subject: subject,
+            sendToUser: sendToUser,
+            filename: `${filenamePrefix}_DSA.pdf`
+        };
+
+        fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' } // Usa text/plain per evitare errori CORS di preflight con GAS
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                Swal.fire('Inviata!', 'La DSA è stata processata correttamente.', 'success');
+            } else {
+                Swal.fire('Errore', 'Errore server: ' + data.message, 'error');
+            }
+        })
+        .catch(err => {
+            Swal.fire('Errore di Connessione', 'Non sono riuscito a contattare il server.', 'error');
+        });
+    }
+</script>
+</body>
+</html>
