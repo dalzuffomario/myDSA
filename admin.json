@@ -1,0 +1,11 @@
+{
+  "_nota": "Amministratori del portale DSA. Le password NON sono in chiaro: usa 'Setting pagina > Account admin' per generare una nuova voce.",
+  "utenti": [
+    {
+      "user": "admin",
+      "salt": "0153fb1fd7dae369b43c65a342831d0f",
+      "iterazioni": 5000,
+      "hash": "9dad1090abae92be29645f5125cd84f0ca707e8bec0039cb91347f0e85ff62e8"
+    }
+  ]
+}
